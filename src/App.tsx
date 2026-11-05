@@ -4,6 +4,7 @@ import { gradeAccuracy, stats, toCsv, useGeolocation, useWakeLock, type Fix, typ
 import { Compass, ScatterPlot, TimeChart } from './LiveCharts'
 import { MapView } from './MapView'
 import { LogView } from './LogView'
+import { ErrorBoundary } from './ErrorBoundary'
 import './dashboard.css'
 
 const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(6)}° ${v >= 0 ? pos : neg}`
@@ -44,7 +45,7 @@ function StatusCard({ status, message, onStart }: { status: GeoStatus; message: 
   if (status === 'insecure') return (
     <section className="status-card bad"><AlertTriangle size={22} /><div>
       <h2>הדף נפתח בלי HTTPS</h2>
-      <p>דפדפן הטלפון חוסם גישה למיקום בחיבור לא מאובטח. פתח את הכתובת שמתחילה ב־<code dir="ltr">https://</code> שמוצגת כשמריצים <code dir="ltr">npm run dev</code>, ואשר את אזהרת האבטחה.</p>
+      <p>דפדפן הטלפון חוסם גישה למיקום בחיבור לא מאובטח. פתח את הכתובת שמתחילה ב־<code dir="ltr">https://</code> שמוצגת כשמריצים <code dir="ltr">npm run dev:phone</code>, ואשר את אזהרת האבטחה.</p>
     </div></section>
   )
   if (status === 'unsupported') return (
@@ -124,7 +125,7 @@ function App() {
       </nav>
 
       <main className="dashboard">
-        {tab === 'log' ? <LogView /> : <>
+        {tab === 'log' ? <ErrorBoundary label="ניתוח הלוג"><LogView /></ErrorBoundary> : <>
         {(!last || geo.status === 'denied' || geo.status === 'insecure') && <StatusCard status={geo.status} message={geo.message} onStart={geo.start} />}
 
         {last && grade && <>
@@ -150,7 +151,7 @@ function App() {
 
           <section className="panel map-panel">
             <div className="panel-heading"><div><h2>מפה</h2><p>המסלול בסשן · העיגול הכתום: רדיוס הדיוק</p></div></div>
-            <MapView track={livePoints} current={liveCurrent} mode="follow" />
+            <ErrorBoundary label="המפה"><MapView track={livePoints} current={liveCurrent} mode="follow" /></ErrorBoundary>
           </section>
 
           <section className="metrics-grid" aria-label="מדדי המקלט">

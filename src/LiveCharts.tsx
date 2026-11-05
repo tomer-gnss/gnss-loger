@@ -106,7 +106,9 @@ export function TimeChart({ data, kind, unit, format, refValue, refLabel, ariaLa
   const m = { top: 12, right: 8, bottom: 6, left: 40 }
   const w = width - m.left - m.right
   const h = height - m.top - m.bottom
-  const maxV = Math.max(...data.map((d) => d.v), refValue ?? 0, 1e-6)
+  // A loop, not Math.max(...data): spreading 65k+ values overflows the call stack on iOS.
+  let maxV = Math.max(refValue ?? 0, 1e-6)
+  for (const d of data) if (Number.isFinite(d.v) && d.v > maxV) maxV = d.v
   const top = niceTop(maxV * 1.05)
   const y = (v: number) => m.top + h - (v / top) * h
   const n = data.length

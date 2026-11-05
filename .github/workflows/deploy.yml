@@ -2,10 +2,14 @@
 # One-time setup in the repo: Settings → Pages → Source: "GitHub Actions".
 #
 # Hardening:
-# - Third-party actions are pinned to full commit SHAs (a moved tag can't inject code).
+# - Actions are pinned to full commit SHAs (a moved tag can't inject code), including inside
+#   upload-pages-artifact (v5 pins its own upload-artifact).
 # - The workflow token has no permissions by default; each job gets only what it needs.
-# - Dependencies install from the lockfile without running package install scripts.
-# - The build fails if a production dependency has a known high/critical vulnerability.
+# - No dependency cache: every deploy downloads fresh, lockfile-verified packages.
+# - Every package must come from registry.npmjs.org with a sha512 hash, carry a valid registry
+#   signature, and install without running package scripts.
+# - The build fails on a known high/critical vulnerability in shipped code, or a critical one
+#   (including published malware) in the build tools.
 name: Deploy to GitHub Pages
 
 on:
@@ -15,34 +19,48 @@ on:
 
 permissions: {}
 
+# One deployment at a time; a newer push waits instead of cancelling a deployment mid-way.
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     permissions:
       contents: read
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
           node-version: 24
-          cache: npm
+          package-manager-cache: false
+      - name: Check lockfile sources
+        run: |
+          node -e '
+            const pk = require("./package-lock.json").packages;
+            const bad = Object.entries(pk).filter(([k, v]) => k &&
+              !(v.resolved?.startsWith("https://registry.npmjs.org/") && v.integrity?.startsWith("sha512-")));
+            if (bad.length) { console.error("Not from registry.npmjs.org with sha512:", bad.map(([k]) => k)); process.exit(1); }'
       - run: npm ci --ignore-scripts
+      - run: npm audit signatures
       - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=critical
       # Pages serves the site under /<repo-name>/, so assets must use that base path.
-      - run: npx tsc -b && npx vite build --base=/${{ github.event.repository.name }}/
-      - uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa # v3.0.1
+      - run: npm run build -- --base="/$REPO_NAME/"
+        env:
+          REPO_NAME: ${{ github.event.repository.name }}
+      - uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5.0.0
         with:
           path: dist
 
   deploy:
     needs: build
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
       pages: write
       id-token: write
@@ -51,4 +69,4 @@ jobs:
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
       - id: deployment
-        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e # v4.0.5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5.0.1

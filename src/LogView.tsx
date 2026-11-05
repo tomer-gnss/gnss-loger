@@ -3,6 +3,7 @@ import { ChevronDown, FileText, FolderOpen, Gauge, Pause, Play, RotateCcw, Satel
 import { parseLogFile, satellitesOf, satLabel, SYS_ORDER, type LogFix, type ParsedLog, type Signal, type Sys } from './logParser'
 import { TimeChart } from './LiveCharts'
 import { MapView } from './MapView'
+import { ErrorBoundary } from './ErrorBoundary'
 
 // Validated categorical palette (light = bars on white, dark = sky plot on the dark panel), fixed order = SYS_ORDER.
 const SYS_COLOR: Record<Sys, { light: string; dark: string }> = {
@@ -16,7 +17,7 @@ const SYS_COLOR: Record<Sys, { light: string; dark: string }> = {
   Unknown: { light: '#898781', dark: '#898781' },
 }
 
-const SAMPLE_URL = 'https://raw.githubusercontent.com/google/gps-measurement-tools/master/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
+const SAMPLE_URL = 'https://raw.githubusercontent.com/google/gps-measurement-tools/a1667c44a7b46a4ee116f5e3d6c8d464c66fe6c5/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
 const SOURCE_TEXT = {
   Status: 'GnssStatus: אזימוט, גובה, C/N₀ ושימוש בפתרון לכל לוויין',
   NMEA: 'NMEA (GSV/GSA): אזימוט, גובה, C/N₀ ושימוש בפתרון',
@@ -224,6 +225,7 @@ export function LogView() {
         {log.satSource && <p className="muted source-note"><Satellite size={14} /> {SOURCE_TEXT[log.satSource]}</p>}
         {provider && provider !== 'GPS' && provider !== 'NMEA' && <p className="muted source-note">אין פתרונות GPS בלוג. מוצגים פתרונות {provider}.</p>}
         {log.badLines > 0 && <p className="muted source-note">{log.badLines} שורות פגומות דולגו.</p>}
+        {log.truncated && <p className="muted source-note">הקובץ חרג ממגבלות הבטיחות (מספר אפוקים, אותות או פתרונות). חלק מהנתונים לא נטען.</p>}
       </section>
 
       <section className="epoch-head">
@@ -257,7 +259,7 @@ export function LogView() {
       <section className="charts-grid">
         {fixes.length > 0 && <article className="panel">
           <div className="panel-heading"><div><h2>מסלול על המפה</h2><p>{fixes.length} פתרונות {provider}{fix && <> · כעת <Num>{fix.lat.toFixed(6)}, {fix.lon.toFixed(6)}</Num>{fix.acc !== null && <> · <Num>±{fix.acc.toFixed(1)} m</Num></>}</>}</p></div></div>
-          <MapView track={fixes} current={mapCurrent} mode="fit" fitKey={`${log.fileName}:${fixes.length}`} />
+          <ErrorBoundary label="המפה" resetKey={log}><MapView track={fixes} current={mapCurrent} mode="fit" fitKey={`${log.fileName}:${fixes.length}`} /></ErrorBoundary>
         </article>}
         <div className="chart-stack">
           {series.tracked.length > 0 && <article className="panel">

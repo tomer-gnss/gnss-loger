@@ -1,0 +1,29 @@
+# Monthly, grouped update PRs; new releases must be 7+ days old (most npm malware is pulled
+# within days). Security fixes arrive immediately regardless (enable "Dependabot security updates").
+version: 2
+updates:
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    open-pull-requests-limit: 5
+    groups:
+      npm-minor-and-patch:
+        patterns: ["*"]
+        update-types: [minor, patch]
+    ignore:
+      # Types should track the Node version the site is built with (24).
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    cooldown:
+      default-days: 7
+    groups:
+      actions:
+        patterns: ["*"]
