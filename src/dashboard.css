@@ -310,3 +310,13 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .map-consent .primary-button { margin-top: 8px; }
 .map-off { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin: 6px 4px 0; padding: 0 6px; border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; }
 .map-wrap.is-full .map-off { display: none; }
+
+/* Map status line (shown while tiles are being fetched) */
+.map-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 6px 8px 2px; color: var(--muted); font-size: 12.5px; }
+.map-status .map-off { margin: 0 0 0 auto; }
+.map-live-dot { width: 8px; height: 8px; border-radius: 50%; background: var(--coral); }
+.map-wrap.is-full .map-status { display: none; }
+
+/* Shown when another page opened this one (reverse-tabnabbing guard) */
+.opener-warning { max-width: 520px; margin: 40px auto; padding: 20px 16px; border: 1px solid #efc9bf; border-radius: 12px; background: #fff7f4; font: 15px/1.5 var(--sans); color: var(--text); }
+.opener-warning .primary-button { margin-top: 12px; }

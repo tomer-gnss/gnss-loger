@@ -1,0 +1,41 @@
+# Checks every pull request (including Dependabot's) before it is merged.
+# Read-only token, no secrets, plain `pull_request` trigger: safe for PRs from forks.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+permissions: {}
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24
+          package-manager-cache: false
+      - name: Check lockfile sources
+        run: |
+          node -e '
+            const pk = require("./package-lock.json").packages;
+            const bad = Object.entries(pk).filter(([k, v]) => k &&
+              !(v.resolved?.startsWith("https://registry.npmjs.org/") && v.integrity?.startsWith("sha512-")));
+            if (bad.length) { console.error("Not from registry.npmjs.org with sha512:", bad.map(([k]) => k)); process.exit(1); }'
+      - run: npm ci --ignore-scripts
+      - run: npm audit signatures
+      - run: npm audit --omit=dev --audit-level=high
+      - run: npm audit --audit-level=critical
+      - run: npm run lint
+      - run: npm run build

@@ -21,9 +21,15 @@ type MapProps = {
   fitKey?: string
 }
 
-const CONSENT_KEY = 'atlas.mapConsent'
-const readConsent = () => { try { return localStorage.getItem(CONSENT_KEY) === '1' } catch { return false } }
-const writeConsent = (on: boolean) => { try { if (on) localStorage.setItem(CONSENT_KEY, '1'); else localStorage.removeItem(CONSENT_KEY) } catch { /* storage blocked */ } }
+// Consent is per mode (live / log) and per browser session: turning the map on to look at a log
+// must not silently start streaming tiles around the user's real position next time.
+const consentKey = (mode: MapProps['mode']) => `atlas.map.${mode}`
+const readConsent = (mode: MapProps['mode']) => { try { return sessionStorage.getItem(consentKey(mode)) === '1' } catch { return false } }
+const writeConsent = (mode: MapProps['mode'], on: boolean) => { try { if (on) sessionStorage.setItem(consentKey(mode), '1'); else sessionStorage.removeItem(consentKey(mode)) } catch { /* storage blocked */ } }
+// Older builds remembered consent permanently; forget it.
+try { localStorage.removeItem('atlas.mapConsent') } catch { /* storage blocked */ }
+
+const LINK = 'target="_blank" rel="noopener noreferrer"'
 
 /**
  * Privacy gate: map tiles are fetched from OpenStreetMap's servers, and the tiles requested reveal
@@ -31,14 +37,14 @@ const writeConsent = (on: boolean) => { try { if (on) localStorage.setItem(CONSE
  * Nothing is loaded until the user opts in; the choice is remembered on this device only.
  */
 export function MapView(props: MapProps) {
-  const [consent, setConsent] = useState(readConsent)
+  const [consent, setConsent] = useState(() => readConsent(props.mode))
   if (!consent) return (
     <div className="map-consent">
-      <p><b>המפה כבויה כדי לשמור על הפרטיות שלך.</b> הצגת המפה טוענת אריחי מפה מהשרתים של OpenStreetMap. מהאריחים שמתבקשים אפשר להבין את האזור שבו אתה נמצא, יחד עם כתובת ה-IP שלך. בלי המפה, המיקום לא יוצא מהמכשיר.</p>
-      <button className="primary-button" onClick={() => { writeConsent(true); setConsent(true) }}>הצג מפה</button>
+      <p><b>המפה כבויה כדי לשמור על הפרטיות שלך.</b> הצגת המפה טוענת אריחי מפה מהשרתים של OpenStreetMap. מהאריחים שמתבקשים אפשר להבין {props.mode === 'follow' ? 'את האזור שבו אתה נמצא' : 'את האזור של הלוג'}, יחד עם כתובת ה-IP שלך. {props.mode === 'follow' ? 'בלי המפה, המיקום לא יוצא מהמכשיר.' : ''} ההסכמה תקפה רק ללשונית הזו ועד שתסגור את הדפדפן.</p>
+      <button className="primary-button" onClick={() => { writeConsent(props.mode, true); setConsent(true) }}>הצג מפה</button>
     </div>
   )
-  return <MapInner {...props} onDisable={() => { writeConsent(false); setConsent(false) }} />
+  return <MapInner {...props} onDisable={() => { writeConsent(props.mode, false); setConsent(false) }} />
 }
 
 function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDisable: () => void }) {
@@ -53,9 +59,11 @@ function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDi
   useEffect(() => {
     if (!box.current) return
     const m = L.map(box.current, { zoomControl: true, attributionControl: true })
+    // Attribution links open in a new tab so tapping them doesn't throw away the live session.
+    m.attributionControl.setPrefix(`<a href="https://leafletjs.com" ${LINK}>Leaflet</a>`)
     L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png', {
       maxZoom: 19,
-      attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+      attribution: `&copy; <a href="https://www.openstreetmap.org/copyright" ${LINK}>OpenStreetMap</a>`,
     }).addTo(m)
     const line = L.polyline([], { color: '#23845d', weight: 3, opacity: 0.9 }).addTo(m)
     const acc = L.circle([0, 0], { radius: 0, color: '#d0703f', weight: 1.5, dashArray: '4 3', fillColor: '#d0703f', fillOpacity: 0.12 }).addTo(m)
@@ -117,7 +125,7 @@ function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDi
         <button className="map-btn" onClick={() => setFull(!full)} aria-label={full ? 'צמצם מפה' : 'מפה במסך מלא'}>{full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}</button>
         {mode === 'follow' && !following && current && <button className="map-btn label" onClick={recentre}><Crosshair size={17} /> מרכז</button>}
       </div>
-      <button className="map-off" onClick={onDisable}><EyeOff size={15} /> כבה מפה</button>
+      <div className="map-status"><span className="map-live-dot" />המפה פעילה: נטענים אריחים מ-OpenStreetMap<button className="map-off" onClick={onDisable}><EyeOff size={15} /> כבה מפה</button></div>
     </div>
   )
 }
