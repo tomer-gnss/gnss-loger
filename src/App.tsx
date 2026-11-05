@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Activity, AlertTriangle, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Sun, Timer, Trash2 } from 'lucide-react'
 import { gradeAccuracy, stats, toCsv, useGeolocation, useWakeLock, type Fix, type GeoStatus } from './geo'
 import { Compass, ScatterPlot, TimeChart } from './LiveCharts'
+import { MapView } from './MapView'
 import { LogView } from './LogView'
 import './dashboard.css'
 
@@ -83,6 +84,7 @@ function App() {
   const grade = last ? gradeAccuracy(last.acc) : null
 
   const livePoints = useMemo(() => geo.fixes.map((f) => ({ t: f.wall, lat: f.lat, lon: f.lon, acc: f.acc })), [geo.fixes])
+  const liveCurrent = useMemo(() => (last ? { lat: last.lat, lon: last.lon, acc: last.acc } : null), [last])
   const accSeries = useMemo(() => geo.fixes.slice(-120).map((f) => ({ t: f.wall, v: f.acc })), [geo.fixes])
   const intervalSeries = useMemo(() => {
     const f = geo.fixes.slice(-61)
@@ -144,6 +146,11 @@ function App() {
               </span>
             </div>
             {geo.status === 'waiting' && <p className="hero-warning"><AlertTriangle size={14} /> המקלט לא החזיר פתרון חדש: {geo.message ?? 'אין קליטה'}</p>}
+          </section>
+
+          <section className="panel map-panel">
+            <div className="panel-heading"><div><h2>מפה</h2><p>המסלול בסשן · העיגול הכתום: רדיוס הדיוק</p></div></div>
+            <MapView track={livePoints} current={liveCurrent} mode="follow" />
           </section>
 
           <section className="metrics-grid" aria-label="מדדי המקלט">
