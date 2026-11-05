@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { Crosshair, Maximize2, Minimize2 } from 'lucide-react'
+import { Crosshair, EyeOff, Maximize2, Minimize2 } from 'lucide-react'
 
 export type MapPoint = { lat: number; lon: number }
 export type MapCurrent = MapPoint & { acc: number | null }
@@ -13,13 +13,35 @@ const MAX_TRACK_POINTS = 4000 // keep the polyline light on phones
  * mode 'follow' (live): keeps the current position centred until the user pans the map.
  * mode 'fit' (log): fits the whole track once, then just moves the marker.
  */
-export function MapView({ track, current, mode, fitKey }: {
+type MapProps = {
   track: MapPoint[]
   current: MapCurrent | null
   mode: 'follow' | 'fit'
   /** Changing this re-fits the map to the track (e.g. when a new log is loaded). */
   fitKey?: string
-}) {
+}
+
+const CONSENT_KEY = 'atlas.mapConsent'
+const readConsent = () => { try { return localStorage.getItem(CONSENT_KEY) === '1' } catch { return false } }
+const writeConsent = (on: boolean) => { try { if (on) localStorage.setItem(CONSENT_KEY, '1'); else localStorage.removeItem(CONSENT_KEY) } catch { /* storage blocked */ } }
+
+/**
+ * Privacy gate: map tiles are fetched from OpenStreetMap's servers, and the tiles requested reveal
+ * the area being shown (i.e. roughly where the user is) together with their IP address.
+ * Nothing is loaded until the user opts in; the choice is remembered on this device only.
+ */
+export function MapView(props: MapProps) {
+  const [consent, setConsent] = useState(readConsent)
+  if (!consent) return (
+    <div className="map-consent">
+      <p><b>המפה כבויה כדי לשמור על הפרטיות שלך.</b> הצגת המפה טוענת אריחי מפה מהשרתים של OpenStreetMap. מהאריחים שמתבקשים אפשר להבין את האזור שבו אתה נמצא, יחד עם כתובת ה-IP שלך. בלי המפה, המיקום לא יוצא מהמכשיר.</p>
+      <button className="primary-button" onClick={() => { writeConsent(true); setConsent(true) }}>הצג מפה</button>
+    </div>
+  )
+  return <MapInner {...props} onDisable={() => { writeConsent(false); setConsent(false) }} />
+}
+
+function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDisable: () => void }) {
   const box = useRef<HTMLDivElement>(null)
   const map = useRef<L.Map | null>(null)
   const layers = useRef<{ line: L.Polyline; acc: L.Circle; dot: L.CircleMarker } | null>(null)
@@ -95,6 +117,7 @@ export function MapView({ track, current, mode, fitKey }: {
         <button className="map-btn" onClick={() => setFull(!full)} aria-label={full ? 'צמצם מפה' : 'מפה במסך מלא'}>{full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}</button>
         {mode === 'follow' && !following && current && <button className="map-btn label" onClick={recentre}><Crosshair size={17} /> מרכז</button>}
       </div>
+      <button className="map-off" onClick={onDisable}><EyeOff size={15} /> כבה מפה</button>
     </div>
   )
 }
