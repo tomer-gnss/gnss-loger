@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react'
 import { ChevronDown, FileText, FolderOpen, Gauge, Pause, Play, RotateCcw, Satellite, Upload } from 'lucide-react'
 import { parseLogFile, satellitesOf, satLabel, SYS_ORDER, type LogFix, type ParsedLog, type Signal, type Sys } from './logParser'
-import { ScatterPlot, TimeChart } from './LiveCharts'
+import { TimeChart } from './LiveCharts'
+import { MapView } from './MapView'
 
 // Validated categorical palette (light = bars on white, dark = sky plot on the dark panel), fixed order = SYS_ORDER.
 const SYS_COLOR: Record<Sys, { light: string; dark: string }> = {
@@ -184,10 +185,7 @@ export function LogView() {
     return { maxBySys, t0, t1 }
   }, [log, epochs, timeline])
 
-  const center = useMemo(() => {
-    if (!fixes.length) return { lat: 0, lon: 0 }
-    return { lat: fixes.reduce((a, f) => a + f.lat, 0) / fixes.length, lon: fixes.reduce((a, f) => a + f.lon, 0) / fixes.length }
-  }, [fixes])
+  const mapCurrent = useMemo(() => (fix ? { lat: fix.lat, lon: fix.lon, acc: fix.acc } : null), [fix])
 
   if (!log) return (
     <>
@@ -258,8 +256,8 @@ export function LogView() {
 
       <section className="charts-grid">
         {fixes.length > 0 && <article className="panel">
-          <div className="panel-heading"><div><h2>מסלול</h2><p>{fixes.length} פתרונות {provider}{fix && <> · כעת <Num>{fix.lat.toFixed(6)}, {fix.lon.toFixed(6)}</Num>{fix.acc !== null && <> · <Num>±{fix.acc.toFixed(1)} m</Num></>}</>}</p></div></div>
-          <ScatterPlot points={fixes} center={center} mode="track" current={fixIdx} />
+          <div className="panel-heading"><div><h2>מסלול על המפה</h2><p>{fixes.length} פתרונות {provider}{fix && <> · כעת <Num>{fix.lat.toFixed(6)}, {fix.lon.toFixed(6)}</Num>{fix.acc !== null && <> · <Num>±{fix.acc.toFixed(1)} m</Num></>}</>}</p></div></div>
+          <MapView track={fixes} current={mapCurrent} mode="fit" fitKey={`${log.fileName}:${fixes.length}`} />
         </article>}
         <div className="chart-stack">
           {series.tracked.length > 0 && <article className="panel">
