@@ -5,6 +5,8 @@ import { Compass, ScatterPlot, TimeChart } from './LiveCharts'
 import { MapView } from './MapView'
 import { LogView } from './LogView'
 import { ErrorBoundary } from './ErrorBoundary'
+import { analyzeLive } from './integrity'
+import { IntegrityPanel } from './IntegrityPanel'
 import './dashboard.css'
 
 const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(6)}° ${v >= 0 ? pos : neg}`
@@ -85,6 +87,11 @@ function App() {
   const grade = last ? gradeAccuracy(last.acc) : null
 
   const livePoints = useMemo(() => geo.fixes.map((f) => ({ t: f.wall, lat: f.lat, lon: f.lon, acc: f.acc })), [geo.fixes])
+  // Integrity analysis every 5th fix (and on the first few) so it never competes with 1 Hz rendering.
+  const integrityTick = geo.fixes.length < 10 ? geo.fixes.length : Math.floor(geo.fixes.length / 5)
+  const integrity = useMemo(() => analyzeLive(geo.fixes.map((f) => ({ t: f.wall, lat: f.lat, lon: f.lon, alt: f.alt, acc: f.acc, speed: f.speed, heading: f.heading }))),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [integrityTick])
   const liveCurrent = useMemo(() => (last ? { lat: last.lat, lon: last.lon, acc: last.acc } : null), [last])
   const accSeries = useMemo(() => geo.fixes.slice(-120).map((f) => ({ t: f.wall, v: f.acc })), [geo.fixes])
   const intervalSeries = useMemo(() => {
@@ -148,6 +155,8 @@ function App() {
             </div>
             {geo.status === 'waiting' && <p className="hero-warning"><AlertTriangle size={14} /> המקלט לא החזיר פתרון חדש: {geo.message ?? 'אין קליטה'}</p>}
           </section>
+
+          <ErrorBoundary label="ניטור השלמות"><IntegrityPanel report={integrity} minPoints={30} points={geo.fixes.length} /></ErrorBoundary>
 
           <section className="panel map-panel">
             <div className="panel-heading"><div><h2>מפה</h2><p>המסלול בסשן · העיגול הכתום: רדיוס הדיוק</p></div></div>

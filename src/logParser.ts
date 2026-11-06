@@ -16,6 +16,10 @@ export type Signal = {
   az: number | null
   el: number | null
   used: boolean | null
+  /** Automatic gain control level, dB (Android Raw records). Rises sharply under RF jamming. */
+  agc?: number | null
+  /** Baseband C/N0, dB-Hz (Android ≥ 11). Diverging from antenna C/N0 indicates in-band interference. */
+  basebandCn0?: number | null
 }
 export type Epoch = { t: number; signals: Signal[] }
 export type LogFix = {
@@ -27,6 +31,11 @@ export type LogFix = {
   speed: number | null
   heading: number | null
   provider: string
+  /** NMEA GGA fix quality (0 none, 1 GPS, 2 DGPS, 4 RTK fixed, 5 RTK float, 6 dead reckoning). */
+  quality?: number | null
+  /** Satellites used in the solution (GGA field 7). */
+  numSv?: number | null
+  hdop?: number | null
 }
 export type SatSource = 'Status' | 'NMEA' | 'Raw'
 export type ParsedLog = {
@@ -223,7 +232,7 @@ export class LogParser {
   private nmeaUsed = new Set<string>()
   private nmeaSawGsa = false
   private nmeaHasTimeSentences = false
-  private nmeaFix: Partial<LogFix> & { quality?: number } = {}
+  private nmeaFix: Partial<LogFix> = {}
   private rawEcef: { sig: Signal; t: number; sx: number; sy: number; sz: number }[] = []
   private readonly fileName: string
 
@@ -331,7 +340,14 @@ export class LogParser {
     }
     if (!validTime(t)) { this.bad++; return }
     const sys = own(ANDROID_SYS, num(get('ConstellationType')) ?? 0) ?? 'Unknown'
-    const sig: Signal = { sys, svid, band: bandFromFreq(num(get('CarrierFrequencyHz')), sys), cn0: validCn0(num(get('Cn0DbHz'))), az: null, el: null, used: null }
+    const sig: Signal = {
+      sys, svid,
+      band: bandFromFreq(num(get('CarrierFrequencyHz')), sys),
+      cn0: validCn0(num(get('Cn0DbHz'))),
+      az: null, el: null, used: null,
+      agc: inRange(num(get('AgcDb')), -100, 100),
+      basebandCn0: validCn0(num(get('BasebandCn0DbHz'))),
+    }
     let ep = this.raw.get(timeNanos)
     if (!ep) {
       if (this.raw.size >= LIMITS.epochs) { this.truncated = true; return }
@@ -386,8 +402,8 @@ export class LogParser {
       if (validTime(t) && t !== this.nmeaTime) this.flushNmea(t)
       if (type === 'GGA') {
         const lat = validLat(nmeaLatLon(f[2], f[3], 2)), lon = validLon(nmeaLatLon(f[4], f[5], 3))
-        const quality = num(f[6]) ?? 0
-        if (lat !== null && lon !== null && quality > 0) Object.assign(this.nmeaFix, { lat, lon, alt: inRange(num(f[9]), -1e5, 1e6), quality })
+        const quality = inRange(num(f[6]), 0, 9) ?? 0
+        if (lat !== null && lon !== null && quality > 0) Object.assign(this.nmeaFix, { lat, lon, alt: inRange(num(f[9]), -1e5, 1e6), quality, numSv: inRange(num(f[7]), 0, 99), hdop: inRange(num(f[8]), 0, 99.9) })
       } else if (f[2] === 'A') {
         const lat = validLat(nmeaLatLon(f[3], f[4], 2)), lon = validLon(nmeaLatLon(f[5], f[6], 3))
         const knots = inRange(num(f[7]), 0, 2e4)
@@ -445,7 +461,7 @@ export class LogParser {
       }
       const fx = this.nmeaFix
       if (fx.lat !== undefined && fx.lon !== undefined) {
-        this.pushFix({ t, lat: fx.lat, lon: fx.lon, alt: fx.alt ?? null, acc: null, speed: fx.speed ?? null, heading: fx.heading ?? null, provider: this.addProvider('NMEA') })
+        this.pushFix({ t, lat: fx.lat, lon: fx.lon, alt: fx.alt ?? null, acc: null, speed: fx.speed ?? null, heading: fx.heading ?? null, provider: this.addProvider('NMEA'), quality: fx.quality ?? null, numSv: fx.numSv ?? null, hdop: fx.hdop ?? null })
       }
     }
     this.nmeaTime = nextTime

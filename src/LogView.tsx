@@ -4,6 +4,8 @@ import { parseLogFile, satellitesOf, satLabel, SYS_ORDER, type LogFix, type Pars
 import { TimeChart } from './LiveCharts'
 import { MapView } from './MapView'
 import { ErrorBoundary } from './ErrorBoundary'
+import { analyzeLog } from './integrity'
+import { IntegrityPanel } from './IntegrityPanel'
 
 // Validated categorical palette (light = bars on white, dark = sky plot on the dark panel), fixed order = SYS_ORDER.
 const SYS_COLOR: Record<Sys, { light: string; dark: string }> = {
@@ -171,8 +173,16 @@ export function LogView() {
     const tracked = epochs.map((e) => ({ t: e.t, v: satellitesOf(e.signals).filter((s) => (s.cn0 ?? 0) > 0).length }))
     const cn0 = epochs.map((e) => ({ t: e.t, v: top4(e.signals) }))
     const acc = fixes.filter((f) => f.acc !== null).map((f) => ({ t: f.t, v: f.acc! }))
-    return { tracked, cn0, acc }
+    const agc: { t: number; v: number }[] = []
+    for (const e of epochs) {
+      let sum = 0, n = 0
+      for (const s of e.signals) if (s.agc !== null && s.agc !== undefined) { sum += s.agc; n++ }
+      if (n) agc.push({ t: e.t, v: sum / n })
+    }
+    return { tracked, cn0, acc, agc }
   }, [epochs, fixes])
+
+  const integrity = useMemo(() => (log ? analyzeLog(log.fixes, epochs) : null), [log, epochs])
 
   const summary = useMemo(() => {
     if (!log) return null
@@ -228,6 +238,8 @@ export function LogView() {
         {log.truncated && <p className="muted source-note">הקובץ חרג ממגבלות הבטיחות (מספר אפוקים, אותות או פתרונות). חלק מהנתונים לא נטען.</p>}
       </section>
 
+      {integrity && <ErrorBoundary label="ניטור השלמות" resetKey={log}><IntegrityPanel report={integrity} minPoints={10} points={Math.max(fixes.length, epochs.length)} /></ErrorBoundary>}
+
       <section className="epoch-head">
         <div><span className="eyebrow-dark">שעה (UTC)</span><strong dir="ltr">{clock(curT)}</strong></div>
         <div><span className="eyebrow-dark">במעקב</span><strong>{trackedSats.length}</strong></div>
@@ -269,6 +281,10 @@ export function LogView() {
           {series.cn0.length > 0 && <article className="panel">
             <div className="panel-heading"><div><h2>C/N₀ ממוצע, 4 החזקים</h2><p>dB-Hz · מדד מקובל לאיכות הקליטה</p></div></div>
             <TimeChart data={series.cn0} kind="line" unit="dB-Hz" format={(v) => v.toFixed(0)} ariaLabel="ממוצע C/N0 של ארבעת הלוויינים החזקים לאורך הלוג" markerIndex={idx} onPick={(i) => { setPlaying(false); setIdx(i) }} endLabel={clock(series.cn0[series.cn0.length - 1].t)} fmtTime={clock} />
+          </article>}
+          {series.agc.length > 0 && <article className="panel">
+            <div className="panel-heading"><div><h2>AGC: בקרת ההגבר של המקלט</h2><p>dB · קפיצה חדה = אנרגיית RF זרה בתדר (שיבוש)</p></div></div>
+            <TimeChart data={series.agc} kind="line" unit="dB" format={(v) => v.toFixed(1)} ariaLabel="רמת AGC לאורך הלוג" markerIndex={indexAt(series.agc, curT)} endLabel={clock(series.agc[series.agc.length - 1].t)} fmtTime={clock} />
           </article>}
           {series.acc.length > 0 && <article className="panel">
             <div className="panel-heading"><div><h2>דיוק אופקי מדווח</h2><p>מטרים · פתרונות {provider}</p></div></div>
