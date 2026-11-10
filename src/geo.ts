@@ -29,6 +29,12 @@ export type GeoStatus =
 const HISTORY = 600 // ~10 minutes at 1 Hz kept in memory for charts
 const SESSION_CAP = 200_000
 
+/** A stretch of time with no tracking because the page was in the background / screen locked. */
+export type Gap = { from: number; to: number }
+
+/** Sanitise one browser value: iOS (CoreLocation) uses −1 for "unknown" speed/heading/accuracy. */
+const finite = (v: number | null, min = 0) => (v !== null && Number.isFinite(v) && v >= min ? v : null)
+
 export function useGeolocation() {
   const supported = typeof navigator !== 'undefined' && 'geolocation' in navigator
   const secure = typeof window !== 'undefined' && window.isSecureContext
@@ -37,33 +43,36 @@ export function useGeolocation() {
   const [status, setStatus] = useState<GeoStatus>(initial)
   const [message, setMessage] = useState<string | null>(null)
   const [fixes, setFixes] = useState<Fix[]>([])
+  const [gaps, setGaps] = useState<Gap[]>([])
   const watchId = useRef<number | null>(null)
   const session = useRef<Fix[]>([])
+  const wanted = useRef(false) // the user pressed start and hasn't pressed stop
+  const lastFixAt = useRef(0)
 
-  const stop = useCallback(() => {
+  const clearWatch = () => {
     if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current)
     watchId.current = null
-    setStatus((s) => (s === 'denied' || s === 'unsupported' || s === 'insecure' ? s : 'idle'))
-  }, [])
+  }
 
-  const start = useCallback(() => {
-    if (!supported || !secure || watchId.current !== null) return
-    setStatus('requesting')
-    setMessage(null)
+  const beginWatch = useCallback(() => {
+    clearWatch()
     watchId.current = navigator.geolocation.watchPosition(
       (p) => {
         const c = p.coords
+        const acc = finite(c.accuracy)
+        if (acc === null || acc === 0 || !Number.isFinite(c.latitude) || !Number.isFinite(c.longitude)) return
         const fix: Fix = {
           wall: Date.now(),
           recv: performance.now(),
           lat: c.latitude,
           lon: c.longitude,
-          acc: c.accuracy,
-          alt: c.altitude,
-          altAcc: c.altitudeAccuracy,
-          speed: c.speed !== null && Number.isFinite(c.speed) ? c.speed : null,
-          heading: c.heading !== null && Number.isFinite(c.heading) ? c.heading : null,
+          acc,
+          alt: c.altitude !== null && Number.isFinite(c.altitude) ? c.altitude : null,
+          altAcc: finite(c.altitudeAccuracy),
+          speed: finite(c.speed),
+          heading: finite(c.heading) !== null && c.heading! <= 360 ? c.heading : null,
         }
+        lastFixAt.current = fix.wall
         if (session.current.length < SESSION_CAP) session.current.push(fix)
         setFixes((prev) => {
           const next = prev.length >= HISTORY ? prev.slice(prev.length - HISTORY + 1) : prev.slice()
@@ -75,8 +84,8 @@ export function useGeolocation() {
       },
       (err) => {
         if (err.code === err.PERMISSION_DENIED) {
-          if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current)
-          watchId.current = null
+          wanted.current = false
+          clearWatch()
           setStatus('denied')
         } else {
           // POSITION_UNAVAILABLE / TIMEOUT: the watch keeps running, we just have no fresh fix.
@@ -87,19 +96,67 @@ export function useGeolocation() {
       // maximumAge 0 = never hand back a cached position; every callback is a fresh fix.
       { enableHighAccuracy: true, maximumAge: 0, timeout: 15000 },
     )
-  }, [secure, supported])
+  }, [])
+
+  const stop = useCallback(() => {
+    wanted.current = false
+    clearWatch()
+    setStatus((s) => (s === 'denied' || s === 'unsupported' || s === 'insecure' ? s : 'idle'))
+  }, [])
+
+  const start = useCallback(() => {
+    if (!supported || !secure || watchId.current !== null) return
+    wanted.current = true
+    setStatus('requesting')
+    setMessage(null)
+    beginWatch()
+  }, [secure, supported, beginWatch])
+
+  // iOS (and mobile browsers generally) give web pages no location while the screen is locked or
+  // the page is in the background. Record those gaps so they're visible and not mistaken for a
+  // receiver problem, and restart the watch if it doesn't come back by itself on return.
+  useEffect(() => {
+    const v: { hiddenAt: number | null; resumeCheck: number | null } = { hiddenAt: null, resumeCheck: null }
+    const onVisibility = () => {
+      if (!wanted.current) return
+      if (document.visibilityState === 'hidden') { v.hiddenAt = Date.now(); return }
+      const from = v.hiddenAt ?? lastFixAt.current
+      v.hiddenAt = null
+      if (from && Date.now() - from > 2000) setGaps((g) => [...g.slice(-49), { from, to: Date.now() }])
+      if (v.resumeCheck !== null) window.clearTimeout(v.resumeCheck)
+      const backAt = Date.now()
+      v.resumeCheck = window.setTimeout(() => {
+        v.resumeCheck = null
+        if (wanted.current && lastFixAt.current < backAt) beginWatch()
+      }, 6000)
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      document.removeEventListener('visibilitychange', onVisibility)
+      if (v.resumeCheck !== null) window.clearTimeout(v.resumeCheck)
+    }
+  }, [beginWatch])
 
   const clear = useCallback(() => {
     session.current = []
     setFixes([])
+    setGaps([])
   }, [])
 
-  useEffect(() => () => {
-    if (watchId.current !== null) navigator.geolocation.clearWatch(watchId.current)
-  }, [])
+  useEffect(() => () => clearWatch(), [])
 
   const running = status === 'active' || status === 'waiting' || status === 'requesting'
-  return { status, message, fixes, session, start, stop, clear, running }
+  return { status, message, fixes, gaps, session, start, stop, clear, running }
+}
+
+/**
+ * iOS "Precise Location" off (or Android approximate permission): the browser returns a
+ * deliberately coarse position, typically 1–10 km uncertainty. Nothing GNSS-related is
+ * meaningful then, so the UI should say so instead of grading the receiver.
+ */
+export function isApproximate(fixes: Fix[]) {
+  const recent = fixes.slice(-5)
+  return recent.length >= 3 && recent.every((f) => f.acc >= 1000)
 }
 
 /** Keeps the screen on while `enabled` (re-acquires after the tab becomes visible again). */

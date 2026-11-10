@@ -3,10 +3,16 @@
   <head>
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <!-- iPhone home-screen icon (180×180, iOS applies the rounded mask itself) -->
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-title" content="אטלס GNSS" />
+    <!-- Standalone: content runs under the status bar; the top bar pads by env(safe-area-inset-top). -->
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <!-- Coordinates and numbers must never turn into tap-to-call links -->
+    <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
     <meta name="theme-color" content="#142a22" />
     <!-- Other sites only ever learn the origin, never page URLs (OSM's tile policy needs the origin). -->
     <meta name="referrer" content="strict-origin" />

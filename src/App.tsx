@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Activity, AlertTriangle, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Sun, Timer, Trash2, Vibrate } from 'lucide-react'
-import { gradeAccuracy, stats, toCsv, useGeolocation, useWakeLock, type Fix, type GeoStatus } from './geo'
+import { Activity, AlertTriangle, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Share, Sun, Timer, Trash2, Vibrate, X } from 'lucide-react'
+import { gradeAccuracy, isApproximate, stats, toCsv, useGeolocation, useWakeLock, type Fix, type Gap, type GeoStatus } from './geo'
+import { dismissInstallHint, installHintDismissed, isIOS, isIOSSafari, isStandalone } from './device'
 import { Compass, ScatterPlot, TimeChart } from './LiveCharts'
 import { MapView } from './MapView'
 import { LogView } from './LogView'
@@ -44,6 +45,46 @@ function LiveBadge({ status, hz }: { status: GeoStatus; hz: number | null }) {
   return <span className={`live-badge ${tone}`}><span className="live-dot" />{text}</span>
 }
 
+/** iOS "Precise Location" off: the browser hands out a deliberately coarse position. */
+function ApproximateCard() {
+  return (
+    <section className="status-card bad" role="alert"><AlertTriangle size={22} /><div>
+      <h2>המיקום מקורב, לא מדויק</h2>
+      <p>הדפדפן מקבל מיקום מעוגל לטווח של קילומטרים, ולא את פתרון ה-GNSS. זו הגדרת פרטיות של הטלפון, לא בעיה במקלט, וכל הבדיקות כאן לא משמעותיות עד שזה יתוקן.</p>
+      {isIOS() ? <ol className="steps">
+        <li>הגדרות ← פרטיות ואבטחה ← שירותי מיקום ← <b>אתרי Safari</b></li>
+        <li>להפעיל את <b>"מיקום מדויק"</b></li>
+        <li>לחזור לכאן, לעצור ולהפעיל מחדש את המעקב</li>
+      </ol> : <p>בהגדרות ההרשאות של הדפדפן לאתר הזה, יש לבחור מיקום <b>מדויק</b> במקום משוער.</p>}
+    </div></section>
+  )
+}
+
+/** Tracking gaps while the page was in the background / the screen was locked. */
+function GapsNote({ gaps }: { gaps: Gap[] }) {
+  if (!gaps.length) return null
+  const total = gaps.reduce((s, g) => s + (g.to - g.from), 0) / 1000
+  const fmt = (sec: number) => (sec >= 90 ? `${Math.round(sec / 60)} דק׳` : `${Math.round(sec)} שנ׳`)
+  return (
+    <p className="gap-note"><Pause size={15} />
+      המעקב נעצר {gaps.length === 1 ? 'פעם אחת' : `${gaps.length} פעמים`} (סה״כ {fmt(total)}) כשהמסך ננעל או כשהאתר עבר לרקע. {isIOS() ? 'באייפון אתרים לא מקבלים מיקום ברקע.' : 'דפדפנים לא נותנים מיקום לאתר ברקע.'} כדי לא לפספס: השאר את האתר פתוח וגלוי, עם "מסך דולק" פעיל.
+    </p>
+  )
+}
+
+/** iPhone Safari: suggest adding to the Home Screen (full screen, no browser bars). */
+function InstallHint() {
+  const [show, setShow] = useState(() => isIOSSafari() && !isStandalone() && !installHintDismissed())
+  if (!show) return null
+  return (
+    <section className="install-hint">
+      <Share size={20} />
+      <p><b>להתקנה כאפליקציה:</b> בתחתית Safari לוחצים על כפתור השיתוף <Share size={14} className="inline-icon" /> ← <b>הוסף למסך הבית</b>. האתר ייפתח במסך מלא, בלי שורת הכתובת.</p>
+      <button className="icon-close" onClick={() => { dismissInstallHint(); setShow(false) }} aria-label="סגור"><X size={18} /></button>
+    </section>
+  )
+}
+
 function StatusCard({ status, message, onStart }: { status: GeoStatus; message: string | null; onStart: () => void }) {
   if (status === 'insecure') return (
     <section className="status-card bad"><AlertTriangle size={22} /><div>
@@ -57,7 +98,13 @@ function StatusCard({ status, message, onStart }: { status: GeoStatus; message: 
   if (status === 'denied') return (
     <section className="status-card bad"><Lock size={22} /><div>
       <h2>אין הרשאת מיקום</h2>
-      <p>אפשר מיקום לאתר הזה: לחיצה על סמל המנעול בשורת הכתובת ← הרשאות ← מיקום ← "אפשר". ודא גם ששירותי המיקום בטלפון פועלים ושמוגדר "מיקום מדויק".</p>
+      {isIOS() ? <>
+        <p><b>באייפון יש שני מקומות לבדוק:</b></p>
+        <ol className="steps">
+          <li>הגדרות ← פרטיות ואבטחה ← שירותי מיקום: שהמתג למעלה <b>פועל</b>. ובאותו מסך ← אתרי Safari ← <b>"בזמן השימוש"</b> או <b>"שאל"</b>, ו<b>"מיקום מדויק" פועל</b>.</li>
+          <li>ב-Safari, בשורת הכתובת: כפתור התפריט (aA) ← הגדרות אתר ← מיקום ← <b>"אפשר"</b> או "שאל".</li>
+        </ol>
+      </> : <p>אפשר מיקום לאתר הזה: לחיצה על סמל המנעול בשורת הכתובת ← הרשאות ← מיקום ← "אפשר". ודא גם ששירותי המיקום בטלפון פועלים ושמוגדר "מיקום מדויק".</p>}
       <button className="primary-button" onClick={onStart}><Play size={18} /> נסה שוב</button>
     </div></section>
   )
@@ -137,7 +184,9 @@ function App() {
 
       <main className="dashboard">
         {tab === 'log' ? <ErrorBoundary label="ניתוח הלוג"><LogView /></ErrorBoundary> : <>
+        {!last && <InstallHint />}
         {(!last || geo.status === 'denied' || geo.status === 'insecure') && <StatusCard status={geo.status} message={geo.message} onStart={geo.start} />}
+        {isApproximate(geo.fixes) && <ApproximateCard />}
 
         {last && grade && <>
           <section className="hero" aria-live="off">
@@ -159,6 +208,7 @@ function App() {
             </div>
             {geo.status === 'waiting' && <p className="hero-warning"><AlertTriangle size={14} /> המקלט לא החזיר פתרון חדש: {geo.message ?? 'אין קליטה'}</p>}
           </section>
+          <GapsNote gaps={geo.gaps} />
 
           <ErrorBoundary label="ניטור השלמות"><IntegrityPanel report={integrity} minPoints={30} points={geo.fixes.length} extra={
             <div className={`sensor-row ${motion.state}`}>

@@ -108,7 +108,7 @@ code { padding: 1px 5px; border-radius: 4px; background: #eef2ec; font: 0.92em v
 .grade-chip.serious i { background: #ff9a5c; }
 .grade-chip.critical i { background: #ff6b5c; }
 .hero-actions { display: inline-flex; gap: 8px; }
-.ghost-button { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid #3c5a4e; border-radius: 10px; background: transparent; color: #dce8e1; font-size: 14px; text-decoration: none; }
+.ghost-button { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid #3c5a4e; border-radius: 10px; background: transparent; color: #dce8e1; font-size: 14px; text-decoration: none; }
 .ghost-button:active { background: rgba(255, 255, 255, 0.08); }
 .hero-warning { display: flex; align-items: center; gap: 6px; margin-top: 12px; color: #ffc879; font-size: 13px; }
 
@@ -171,7 +171,7 @@ th { padding: 8px 12px; background: #f6f8f4; color: var(--muted); font-size: 12p
 td { padding: 9px 12px; border-top: 1px solid #edf1ec; color: var(--text-2); font-family: var(--mono); text-align: right; }
 tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 
-.text-button { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 14px; border: 1px solid var(--border); border-radius: 10px; background: #f6f8f4; color: var(--ink); font-size: 14px; font-weight: 600; }
+.text-button { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 10px; background: #f6f8f4; color: var(--ink); font-size: 14px; font-weight: 600; }
 
 /* Mode tabs (live / log) */
 .mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; max-width: 1240px; margin: 12px auto 0; padding: 4px; border-radius: 12px; background: #e4e9e2; width: calc(100% - 2 * max(16px, env(safe-area-inset-left))); }
@@ -185,7 +185,7 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .drop-zone h2 { font-size: 18px; }
 .drop-zone p { max-width: 520px; color: var(--text-2); font-size: 14px; }
 .drop-zone .primary-button { margin-top: 10px; }
-.link-button { min-height: 40px; padding: 0 8px; border: 0; background: transparent; color: var(--series); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+.link-button { min-height: 44px; padding: 0 8px; border: 0; background: transparent; color: var(--series); font-size: 14px; font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
 .progress { width: min(320px, 100%); height: 6px; border-radius: 3px; background: #e4e9e2; overflow: hidden; direction: ltr; }
 .progress span { display: block; height: 100%; background: var(--series); transition: width 0.15s; }
 .error-text { color: var(--critical) !important; font-weight: 600; }
@@ -295,7 +295,7 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .map-wrap { position: relative; isolation: isolate; border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
 .map-box { width: 100%; height: 320px; background: #e9eee8; }
 .map-buttons { position: absolute; z-index: 1000; top: 10px; right: 10px; display: flex; flex-direction: column; align-items: flex-end; gap: 8px; }
-.map-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 40px; min-height: 40px; padding: 0 10px; border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 8px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 650; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
+.map-btn { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-width: 44px; min-height: 44px; padding: 0 10px; border: 1px solid rgba(0, 0, 0, 0.2); border-radius: 8px; background: #fff; color: var(--ink); font-size: 14px; font-weight: 650; box-shadow: 0 1px 4px rgba(0, 0, 0, 0.15); }
 .map-btn.label { background: var(--ink); color: #fff; border-color: var(--ink); }
 .map-wrap.is-full { position: fixed; z-index: 50; inset: 0; border-radius: 0; border: 0; }
 .map-wrap.is-full .map-box { height: 100%; }
@@ -308,7 +308,7 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .map-consent { display: flex; flex-direction: column; align-items: flex-start; gap: 4px; padding: 14px; border: 1px dashed #c9d4cb; border-radius: 10px; background: #f6f8f4; }
 .map-consent p { color: var(--text-2); font-size: 14px; }
 .map-consent .primary-button { margin-top: 8px; }
-.map-off { display: inline-flex; align-items: center; gap: 6px; min-height: 40px; margin: 6px 4px 0; padding: 0 6px; border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; }
+.map-off { display: inline-flex; align-items: center; gap: 6px; min-height: 44px; margin: 6px 4px 0; padding: 0 6px; border: 0; background: transparent; color: var(--muted); font-size: 13px; font-weight: 600; }
 .map-wrap.is-full .map-off { display: none; }
 
 /* Map status line (shown while tiles are being fetched) */
@@ -373,3 +373,16 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .integrity-timeline h3 { margin: 0; color: var(--ink); font-size: 14.5px; font-weight: 650; }
 .integrity-timeline > p { margin: 2px 0 6px; }
 .jump-button { margin-top: 8px; }
+
+/* iPhone-specific guidance */
+.steps { margin: 8px 0 0; padding-inline-start: 20px; color: var(--text-2); font-size: 14px; }
+.steps li + li { margin-top: 4px; }
+.gap-note { display: flex; align-items: flex-start; gap: 8px; margin: 0; padding: 10px 12px; border-radius: 10px; background: #fffaf0; border: 1px solid #ecdcb2; color: var(--text-2); font-size: 13.5px; }
+.gap-note > svg { flex: none; margin-top: 2px; color: var(--warning); }
+.install-hint { display: flex; align-items: flex-start; gap: 10px; padding: 12px; border: 1px solid #b9dfcf; border-radius: 12px; background: #f1f8f4; color: var(--text-2); font-size: 14px; }
+.install-hint > svg { flex: none; margin-top: 2px; color: var(--series); }
+.install-hint p { margin: 0; flex: 1; }
+.inline-icon { display: inline; vertical-align: -2px; }
+.icon-close { flex: none; display: grid; place-items: center; width: 44px; height: 44px; margin: -10px -8px -10px 0; border: 0; background: transparent; color: var(--muted); }
+/* ProMotion / high refresh: keep the live pulse cheap */
+.fix-pulse, .live-badge.live .live-dot { will-change: transform, box-shadow; }
