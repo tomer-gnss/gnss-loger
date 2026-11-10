@@ -361,3 +361,15 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .passed-list svg { flex: none; color: var(--good); }
 .integrity-note { margin-top: 10px; font-size: 12px; }
 @media (min-width: 560px) { .passed-list { grid-template-columns: 1fr 1fr; } }
+
+/* Integrity: sensors switch, timeline, jump button */
+.sensor-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 10px; margin-top: 12px; padding: 10px 12px; border: 1px dashed #c9d4cb; border-radius: 10px; background: var(--surface); color: var(--text-2); font-size: 13.5px; }
+.sensor-row > svg { flex: none; color: var(--muted); }
+.sensor-row > span { flex: 1 1 200px; min-width: 0; }
+.sensor-row.active { border-style: solid; border-color: #9fd9c3; }
+.sensor-row.active > svg { color: var(--good); }
+.sensor-row.denied, .sensor-row.no-data, .sensor-row.unsupported { border-style: solid; }
+.integrity-timeline { margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--border); }
+.integrity-timeline h3 { margin: 0; color: var(--ink); font-size: 14.5px; font-weight: 650; }
+.integrity-timeline > p { margin: 2px 0 6px; }
+.jump-button { margin-top: 8px; }

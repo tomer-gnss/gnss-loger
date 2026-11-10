@@ -182,7 +182,13 @@ export function LogView() {
     return { tracked, cn0, acc, agc }
   }, [epochs, fixes])
 
-  const integrity = useMemo(() => (log ? analyzeLog(log.fixes, epochs) : null), [log, epochs])
+  const integrity = useMemo(() => (log ? analyzeLog(log.fixes, epochs, log.clock) : null), [log, epochs])
+  // Timeline / finding "show this moment": stop playback and move the playhead there.
+  const jumpTo = (t: number) => {
+    setPlaying(false)
+    setIdx(indexAt(timeline, t))
+    document.querySelector('.epoch-head')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const summary = useMemo(() => {
     if (!log) return null
@@ -238,7 +244,7 @@ export function LogView() {
         {log.truncated && <p className="muted source-note">הקובץ חרג ממגבלות הבטיחות (מספר אפוקים, אותות או פתרונות). חלק מהנתונים לא נטען.</p>}
       </section>
 
-      {integrity && <ErrorBoundary label="ניטור השלמות" resetKey={log}><IntegrityPanel report={integrity} minPoints={10} points={Math.max(fixes.length, epochs.length)} /></ErrorBoundary>}
+      {integrity && <ErrorBoundary label="ניטור השלמות" resetKey={log}><IntegrityPanel report={integrity} minPoints={10} points={Math.max(fixes.length, epochs.length)} onJump={jumpTo} markerT={curT} fmtTime={clock} /></ErrorBoundary>}
 
       <section className="epoch-head">
         <div><span className="eyebrow-dark">שעה (UTC)</span><strong dir="ltr">{clock(curT)}</strong></div>

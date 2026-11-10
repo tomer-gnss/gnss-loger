@@ -37,6 +37,25 @@ export type LogFix = {
   numSv?: number | null
   hdop?: number | null
 }
+/**
+ * One receiver-clock sample per Raw epoch. TimeNanos and FullBiasNanos are ~1e18, beyond the
+ * 2^53 range where JS numbers are exact (resolution would be 256 ns), so they stay BigInt.
+ */
+export type ClockSample = {
+  /** UTC ms of the epoch (for display / timeline). */
+  t: number
+  timeNanos: bigint
+  fullBiasNanos: bigint
+  biasNanos: number
+  /** Receiver-reported clock drift, ns/s. */
+  driftNanosPerSecond: number | null
+  /** Increments when the hardware clock had a discontinuity (reset); steps across it are not comparable. */
+  discontinuity: number | null
+  leapSecond: number | null
+  /** Device system time (utcTimeMillis), independent of GNSS on most phones. */
+  systemMs: number | null
+}
+
 export type SatSource = 'Status' | 'NMEA' | 'Raw'
 export type ParsedLog = {
   fileName: string
@@ -50,6 +69,8 @@ export type ParsedLog = {
   badLines: number
   /** True when the file exceeded a safety cap and the rest was skipped. */
   truncated: boolean
+  /** Receiver clock per Raw epoch (empty for NMEA / Status-only logs). */
+  clock: ClockSample[]
 }
 
 // ---------- safety limits ----------
@@ -79,6 +100,12 @@ const num = (s: string | undefined) => {
 /** Own-property lookup: file-supplied keys like "__proto__" must never reach Object.prototype. */
 const own = <T,>(obj: Record<string, T> | undefined, key: string | number): T | undefined =>
   obj !== undefined && Object.hasOwn(obj, key) ? obj[key] : undefined
+
+/** Exact integer for int64 nanosecond fields; null if not a plain integer of sane length. */
+const bigint = (s: string | undefined) => {
+  const t = s?.trim()
+  return t && /^-?\d{1,20}$/.test(t) ? BigInt(t) : null
+}
 
 const validTime = (t: number | null): t is number => t !== null && Number.isFinite(t) && Math.abs(t) < 8.64e15 && Number.isFinite(new Date(t).getTime())
 const inRange = (v: number | null, lo: number, hi: number) => (v !== null && v >= lo && v <= hi ? v : null)
@@ -234,6 +261,7 @@ export class LogParser {
   private nmeaHasTimeSentences = false
   private nmeaFix: Partial<LogFix> = {}
   private rawEcef: { sig: Signal; t: number; sx: number; sy: number; sz: number }[] = []
+  private clock: ClockSample[] = []
   private readonly fileName: string
 
   constructor(fileName: string) {
@@ -353,6 +381,18 @@ export class LogParser {
       if (this.raw.size >= LIMITS.epochs) { this.truncated = true; return }
       ep = { t, signals: [] }
       this.raw.set(timeNanos, ep)
+      // Clock fields are per epoch (identical on every measurement line of it): keep the first.
+      const tn = bigint(get('TimeNanos')), fb = bigint(get('FullBiasNanos'))
+      if (tn !== null && fb !== null) {
+        this.clock.push({
+          t, timeNanos: tn, fullBiasNanos: fb,
+          biasNanos: inRange(num(get('BiasNanos')), -1e9, 1e9) ?? 0,
+          driftNanosPerSecond: inRange(num(get('DriftNanosPerSecond')), -1e7, 1e7),
+          discontinuity: inRange(num(get('HardwareClockDiscontinuityCount')), 0, 1e9),
+          leapSecond: inRange(num(get('LeapSecond')), 0, 60),
+          systemMs: validTime(num(get('utcTimeMillis'))) ? num(get('utcTimeMillis')) : null,
+        })
+      }
     }
     if (ep.signals.length >= LIMITS.signalsPerEpoch) { this.truncated = true; return }
     ep.signals.push(sig)
@@ -495,6 +535,7 @@ export class LogParser {
       lines: this.lines,
       badLines: this.bad,
       truncated: this.truncated,
+      clock: this.clock.sort((a, b) => (a.timeNanos < b.timeNanos ? -1 : a.timeNanos > b.timeNanos ? 1 : 0)),
     }
   }
 

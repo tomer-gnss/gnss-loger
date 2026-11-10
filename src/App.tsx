@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Activity, AlertTriangle, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Sun, Timer, Trash2 } from 'lucide-react'
+import { Activity, AlertTriangle, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Sun, Timer, Trash2, Vibrate } from 'lucide-react'
 import { gradeAccuracy, stats, toCsv, useGeolocation, useWakeLock, type Fix, type GeoStatus } from './geo'
 import { Compass, ScatterPlot, TimeChart } from './LiveCharts'
 import { MapView } from './MapView'
@@ -7,6 +7,7 @@ import { LogView } from './LogView'
 import { ErrorBoundary } from './ErrorBoundary'
 import { analyzeLive } from './integrity'
 import { IntegrityPanel } from './IntegrityPanel'
+import { useMotion } from './motion'
 import './dashboard.css'
 
 const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(6)}° ${v >= 0 ? pos : neg}`
@@ -87,11 +88,14 @@ function App() {
   const grade = last ? gradeAccuracy(last.acc) : null
 
   const livePoints = useMemo(() => geo.fixes.map((f) => ({ t: f.wall, lat: f.lat, lon: f.lon, acc: f.acc })), [geo.fixes])
-  // Integrity analysis every 5th fix (and on the first few) so it never competes with 1 Hz rendering.
-  const integrityTick = geo.fixes.length < 10 ? geo.fixes.length : Math.floor(geo.fixes.length / 5)
-  const integrity = useMemo(() => analyzeLive(geo.fixes.map((f) => ({ t: f.wall, lat: f.lat, lon: f.lon, alt: f.alt, acc: f.acc, speed: f.speed, heading: f.heading }))),
+  const motion = useMotion()
+  // Integrity analysis every 5th fix / 5th sensor second (and on the first few), so it never
+  // competes with 1 Hz rendering.
+  const integrityTick = `${geo.fixes.length < 10 ? geo.fixes.length : Math.floor(geo.fixes.length / 5)}:${Math.floor(motion.seconds.length / 5)}`
+  const integrity = useMemo(() => analyzeLive(geo.fixes.map((f) => ({ t: f.wall, lat: f.lat, lon: f.lon, alt: f.alt, acc: f.acc, speed: f.speed, heading: f.heading })), motion.seconds),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [integrityTick])
+  const lastMotion = motion.seconds[motion.seconds.length - 1]
   const liveCurrent = useMemo(() => (last ? { lat: last.lat, lon: last.lon, acc: last.acc } : null), [last])
   const accSeries = useMemo(() => geo.fixes.slice(-120).map((f) => ({ t: f.wall, v: f.acc })), [geo.fixes])
   const intervalSeries = useMemo(() => {
@@ -156,7 +160,21 @@ function App() {
             {geo.status === 'waiting' && <p className="hero-warning"><AlertTriangle size={14} /> המקלט לא החזיר פתרון חדש: {geo.message ?? 'אין קליטה'}</p>}
           </section>
 
-          <ErrorBoundary label="ניטור השלמות"><IntegrityPanel report={integrity} minPoints={30} points={geo.fixes.length} /></ErrorBoundary>
+          <ErrorBoundary label="ניטור השלמות"><IntegrityPanel report={integrity} minPoints={30} points={geo.fixes.length} extra={
+            <div className={`sensor-row ${motion.state}`}>
+              <Vibrate size={18} />
+              {motion.state === 'active' ? <>
+                <span><b>הצלבה עם חיישני התנועה פעילה.</b> הטלפון כרגע: <b>{!lastMotion ? '…' : lastMotion.accStd < 0.12 ? 'מונח ללא תזוזה' : lastMotion.accStd < 1 ? 'בתנועה קלה' : 'בתנועה / הליכה'}</b>. הנתונים נשארים בזיכרון בלבד.</span>
+                <button className="text-button" onClick={motion.stop}>כבה</button>
+              </> : motion.state === 'denied' ? <span>הגישה לחיישני התנועה נדחתה. באייפון: הגדרות ← Safari ← "תנועה וכיוון" (Motion &amp; Orientation Access).</span>
+                : motion.state === 'no-data' ? <span>המכשיר לא מדווח על חיישני תנועה (למשל במחשב).</span>
+                : motion.state === 'unsupported' ? <span>הדפדפן לא תומך בחיישני תנועה.</span>
+                : <>
+                  <span><b>הצלבה עם חיישני התנועה</b> של הטלפון: מזייף שולט במה שה-GNSS מחשב, אבל לא בתנועה הפיזית של הטלפון. הנתונים לא נשמרים ולא נשלחים.</span>
+                  <button className="text-button" onClick={() => void motion.start()} disabled={motion.state === 'requesting'}>{motion.state === 'requesting' ? 'מבקש הרשאה…' : 'הפעל'}</button>
+                </>}
+            </div>
+          } /></ErrorBoundary>
 
           <section className="panel map-panel">
             <div className="panel-heading"><div><h2>מפה</h2><p>המסלול בסשן · העיגול הכתום: רדיוס הדיוק</p></div></div>
@@ -246,7 +264,7 @@ function App() {
           : <button className="action primary" onClick={geo.start} disabled={geo.status === 'insecure' || geo.status === 'unsupported'}><Play size={20} /><span>הפעל</span></button>}
         {wake.supported && <button className={`action ${keepAwake ? 'on' : ''}`} onClick={() => setKeepAwake(!keepAwake)} aria-pressed={keepAwake}><Sun size={20} /><span>{keepAwake ? 'מסך דולק' : 'מסך רגיל'}</span></button>}
         <button className="action" onClick={exportCsv} disabled={!geo.session.current.length}><Download size={20} /><span>CSV</span></button>
-        <button className="action" onClick={geo.clear} disabled={!geo.fixes.length}><Trash2 size={20} /><span>נקה</span></button>
+        <button className="action" onClick={() => { geo.clear(); motion.clear() }} disabled={!geo.fixes.length}><Trash2 size={20} /><span>נקה</span></button>
       </nav>}
     </div>
   )
