@@ -386,6 +386,158 @@ function checkBasebandDivergence(epochs: Epoch[], acc: Acc) {
 }
 
 // ------------------------------------------------------------------
+// GNSS vs network location (Android logs with NLP fixes)
+// ------------------------------------------------------------------
+//
+// The phone has two independent ways to know where it is: the GNSS receiver, and the network
+// location provider (cell towers + Wi-Fi access points). A GNSS spoofer only fools the first.
+// GnssLogger / GPSTest record both as Fix records (provider GPS vs NLP). FLP is a fusion that
+// already contains GNSS, so it is not an independent witness and is ignored here.
+
+const NET = {
+  maxPairGapMs: 5000, // compare an NLP fix with the GNSS fix closest in time, within ±5 s
+  minDisagreeM: 300, // below this the two are considered consistent regardless of accuracy
+  sigmaFactor: 2, // disagreement must exceed 2 × (GNSS accuracy + network accuracy)
+}
+
+export type NetworkPair = { t: number; distM: number; tolM: number; gnssAcc: number | null; netAcc: number | null }
+
+/** Pairs each network (NLP) fix with the nearest GNSS fix in time. */
+export function pairGnssWithNetwork(fixes: LogFix[]): NetworkPair[] {
+  const gnss = fixes.filter((f) => f.provider === 'GPS' || f.provider === 'NMEA').sort((a, b) => a.t - b.t)
+  const net = fixes.filter((f) => f.provider === 'NLP')
+  const out: NetworkPair[] = []
+  if (!gnss.length) return out
+  for (const n of net) {
+    let lo = 0, hi = gnss.length - 1
+    while (lo < hi) { const mid = (lo + hi) >> 1; if (gnss[mid].t < n.t) lo = mid + 1; else hi = mid }
+    const g = lo > 0 && Math.abs(gnss[lo - 1].t - n.t) < Math.abs(gnss[lo].t - n.t) ? gnss[lo - 1] : gnss[lo]
+    if (Math.abs(g.t - n.t) > NET.maxPairGapMs) continue
+    const distM = haversine(g as IntegrityPoint, n as IntegrityPoint)
+    const tolM = Math.max(NET.minDisagreeM, NET.sigmaFactor * ((g.acc ?? 20) + (n.acc ?? 1000)))
+    out.push({ t: n.t, distM, tolM, gnssAcc: g.acc, netAcc: n.acc })
+  }
+  return out
+}
+
+function checkGnssVsNetwork(fixes: LogFix[], acc: Acc) {
+  const pairs = pairGnssWithNetwork(fixes)
+  if (!pairs.length) {
+    const hasNet = fixes.some((f) => f.provider === 'NLP')
+    acc.unavailable.push(hasNet ? 'השוואת GNSS למיקום מהרשת (אין פתרונות GNSS ורשת באותו זמן)' : 'השוואת GNSS למיקום מהרשת (אין בלוג מיקומי רשת NLP)')
+    return
+  }
+  const bad = pairs.filter((p) => p.distM > p.tolM)
+  for (const p of bad) bumpT(acc, p.t, 35)
+  if (!bad.length) {
+    const worst = pairs.reduce((a, b) => (b.distM > a.distM ? b : a))
+    acc.passed.push(`מיקום ה-GNSS תואם למיקום מהרשת הסלולרית (${pairs.length === 1 ? 'השוואה אחת' : `${pairs.length} השוואות`}, פער מרבי ${fmt(worst.distM, 0)} מ׳)`)
+    return
+  }
+  const worst = bad.reduce((a, b) => (b.distM > a.distM ? b : a))
+  const km = (m: number) => (m >= 1000 ? `${fmt(m / 1000, 1)} ק״מ` : `${fmt(m, 0)} מ׳`)
+  const persistent = bad.length >= 3 && bad.length > pairs.length / 2
+  acc.findings.push({
+    id: 'gnss-vs-network',
+    severity: persistent ? 'critical' : 'serious',
+    title: 'ה-GNSS והרשת הסלולרית לא מסכימים על המיקום',
+    detail: `${bad.length === 1 ? 'בהשוואה אחת' : `ב-${bad.length} מתוך ${pairs.length} השוואות`} מיקום ה-GNSS רחוק ממיקום הרשת (אנטנות ו-Wi-Fi) יותר ממה שהדיוק של שניהם מסביר. הפער הגדול: ${km(worst.distM)} ב-${acc.clk(worst.t)}, כשהטווח הסביר היה עד ${km(worst.tolM)}. מזייף GNSS לא משפיע על מיקום הרשת, ולכן זה אחד הסימנים החזקים לזיוף.`,
+    benign: 'מיקום רשת שגוי: נקודת Wi-Fi שהועברה ממקום אחר, אנטנה רחוקה באזור כפרי, טיסה, או מעבר גבול.',
+    at: worst.t,
+  })
+}
+
+// ------------------------------------------------------------------
+// C/N0 common-mode correlation across satellites
+// ------------------------------------------------------------------
+//
+// Real satellites sit in different directions. When the phone moves or turns, each satellite's
+// signal changes differently (one is blocked by the body, another comes into view). A spoofer
+// transmits every "satellite" from one antenna, so all of them rise and fall together.
+//
+// Per sliding window: take each satellite's epoch-to-epoch C/N0 change, and measure how much of
+// the change is shared by all satellites. 0 = independent (genuine), 1 = identical (one source).
+
+const CORR = {
+  window: 30, // epochs per window
+  step: 15,
+  minSats: 5,
+  minActivityDb: 0.7, // windows with less variation than this can't be judged (static, stable)
+  flagRho: 0.6, // shared-change ratio above which a window counts as "moving together"
+  flagShare: 0.3, // fraction of judged windows that must be flagged
+}
+
+export type CorrWindow = { from: number; t: number; rho: number; activity: number; sats: number }
+
+/** Shared-change ratio per window (exported for calibration tests). */
+export function cn0CommonMode(epochs: Epoch[]): CorrWindow[] {
+  // Per signal (sat + band), C/N0 at each epoch index.
+  const series = new Map<string, Map<number, number>>()
+  epochs.forEach((e, i) => {
+    for (const s of e.signals) {
+      if (s.cn0 === null || s.cn0 <= 0) continue
+      const k = `${s.sys}-${s.svid}-${s.band ?? ''}`
+      let m = series.get(k)
+      if (!m) { m = new Map(); series.set(k, m) }
+      m.set(i, s.cn0)
+    }
+  })
+  const out: CorrWindow[] = []
+  for (let start = 0; start + CORR.window <= epochs.length; start += CORR.step) {
+    const end = start + CORR.window
+    // Signals present in every epoch of the window.
+    const deltas: number[][] = []
+    for (const m of series.values()) {
+      const d: number[] = []
+      let ok = true
+      for (let i = start + 1; i < end; i++) {
+        const a = m.get(i - 1), b = m.get(i)
+        if (a === undefined || b === undefined) { ok = false; break }
+        d.push(b - a)
+      }
+      if (ok) deltas.push(d)
+    }
+    const n = deltas.length
+    if (n < CORR.minSats) continue
+    const len = deltas[0].length
+    const variance = (x: number[]) => { const mu = x.reduce((s, v) => s + v, 0) / x.length; return x.reduce((s, v) => s + (v - mu) ** 2, 0) / x.length }
+    const perSat = deltas.map(variance)
+    const meanVar = perSat.reduce((s, v) => s + v, 0) / n
+    if (meanVar <= 0) continue
+    const common: number[] = []
+    for (let k = 0; k < len; k++) { let s = 0; for (const d of deltas) s += d[k]; common.push(s / n) }
+    const ratio = variance(common) / meanVar // 1/n if independent, 1 if identical
+    const rho = Math.max(0, Math.min(1, (ratio - 1 / n) / (1 - 1 / n)))
+    out.push({ from: epochs[start].t, t: epochs[end - 1].t, rho, activity: Math.sqrt(meanVar), sats: n })
+  }
+  return out
+}
+
+function checkCn0Correlation(epochs: Epoch[], acc: Acc) {
+  const windows = cn0CommonMode(epochs)
+  const judged = windows.filter((w) => w.activity >= CORR.minActivityDb)
+  if (judged.length < 3) {
+    acc.unavailable.push(windows.length ? 'מתאם C/N₀ בין לוויינים (האות יציב מדי כדי לשפוט, למשל טלפון מונח במקום)' : 'מתאם C/N₀ בין לוויינים (הלוג קצר מדי)')
+    return
+  }
+  const flagged = judged.filter((w) => w.rho > CORR.flagRho)
+  // The evidence covers the whole window, not just its last epoch.
+  for (const w of flagged) for (let s = Math.floor(w.from / 1000); s <= Math.floor(w.t / 1000); s++) bumpT(acc, s * 1000, 25)
+  const medianRho = median(judged.map((w) => w.rho))
+  if (flagged.length > judged.length * CORR.flagShare) {
+    const worst = flagged.reduce((a, b) => (b.rho > a.rho ? b : a))
+    acc.findings.push({
+      id: 'cn0-correlation',
+      severity: flagged.length > judged.length * 0.6 && medianRho > 0.75 ? 'critical' : 'serious',
+      title: 'כל הלוויינים מתחזקים ונחלשים יחד',
+      detail: `ב-${fmt((flagged.length / judged.length) * 100, 0)}% מחלונות הזמן, השינויים בעוצמת האות היו משותפים לכל הלוויינים (מתאם ${fmt(worst.rho * 100, 0)}% בחלון הגרוע, ${worst.sats} לוויינים, ב-${acc.clk(worst.t)}). לוויינים אמיתיים בכיוונים שונים משתנים כל אחד בנפרד כשהטלפון זז. שינוי משותף מעיד על מקור אחד שמשדר את כולם.`,
+      benign: 'כניסה ויציאה חוזרות ממבנה, או שינוי הגבר של המקלט עצמו. אלה בדרך כלל אירועים בודדים ולא דפוס מתמשך.',
+      at: worst.t,
+    })
+  } else acc.passed.push(`כל לוויין משתנה בנפרד (מתאם חציוני ${fmt(medianRho * 100, 0)}%, ${judged.length} חלונות)`)
+}
+
+// ------------------------------------------------------------------
 // Receiver clock (Android Raw logs)
 // ------------------------------------------------------------------
 //
@@ -610,12 +762,14 @@ export function analyzeLog(fixes: LogFix[], epochs: Epoch[], clockSamples: Clock
   checkAltitude(points, acc)
   checkTime(points, acc)
   checkProviderMix(fixes, acc)
+  checkGnssVsNetwork(fixes, acc)
   if (epochs.length) {
     checkCn0(epochs, acc)
     checkAgc(epochs, acc)
     checkBasebandDivergence(epochs, acc)
     checkSatellites(epochs, acc)
     checkConstellations(epochs, acc)
+    checkCn0Correlation(epochs, acc)
   } else acc.unavailable.push('נתוני לוויינים (אין רשומות Status/Raw/GSV בלוג)')
   checkNmeaQuality(fixes, acc)
   return finalize(acc)
