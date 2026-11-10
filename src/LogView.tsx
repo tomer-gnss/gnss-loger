@@ -6,18 +6,8 @@ import { MapView } from './MapView'
 import { ErrorBoundary } from './ErrorBoundary'
 import { analyzeLog } from './integrity'
 import { IntegrityPanel } from './IntegrityPanel'
-
-// Validated categorical palette (light = bars on white, dark = sky plot on the dark panel), fixed order = SYS_ORDER.
-const SYS_COLOR: Record<Sys, { light: string; dark: string }> = {
-  GPS: { light: '#2a78d6', dark: '#3987e5' },
-  Galileo: { light: '#eb6834', dark: '#d95926' },
-  GLONASS: { light: '#1baf7a', dark: '#199e70' },
-  BeiDou: { light: '#eda100', dark: '#c98500' },
-  QZSS: { light: '#e87ba4', dark: '#d55181' },
-  SBAS: { light: '#008300', dark: '#008300' },
-  NavIC: { light: '#6250d6', dark: '#9085e9' },
-  Unknown: { light: '#898781', dark: '#898781' },
-}
+import { SYS_COLOR } from './colors'
+import { ConstellationChart, Cn0Heatmap } from './SatCharts'
 
 const SAMPLE_URL = 'https://raw.githubusercontent.com/google/gps-measurement-tools/a1667c44a7b46a4ee116f5e3d6c8d464c66fe6c5/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
 const SOURCE_TEXT = {
@@ -271,6 +261,17 @@ export function LogView() {
               <span className={`used-tag ${s.used ? 'yes' : ''}`}>{s.used === null ? '' : s.used ? 'בפתרון' : '—'}</span>
             </div>
           ))}</div>
+        </article>
+      </section>}
+
+      {epochs.length > 1 && <section className="sat-charts">
+        <article className="panel">
+          <div className="panel-heading"><div><h2>לוויינים במעקב לפי מערכת</h2><p>ירידה פתאומית של כל המערכות יחד היא החתימה הקלאסית של שיבוש. הקש כדי לקפוץ לזמן.</p></div></div>
+          <ErrorBoundary label="הגרף" resetKey={log}><ConstellationChart epochs={epochs} markerT={curT} onPick={jumpTo} fmtTime={clock} /></ErrorBoundary>
+        </article>
+        <article className="panel">
+          <div className="panel-heading"><div><h2>עוצמת אות לכל לוויין לאורך זמן</h2><p>שורה לכל לוויין, צבע כהה יותר = אות חזק יותר. שיבוש נראה כפס אנכי של היחלשות בכל השורות; משדר מזייף יחיד, כשורות שנראות זהות.</p></div><span className="unit-pill">C/N₀</span></div>
+          <ErrorBoundary label="מפת החום" resetKey={log}><Cn0Heatmap epochs={epochs} markerT={curT} onPick={jumpTo} fmtTime={clock} /></ErrorBoundary>
         </article>
       </section>}
 
