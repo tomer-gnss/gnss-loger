@@ -8,6 +8,7 @@ import { analyzeLog } from './integrity'
 import { IntegrityPanel } from './IntegrityPanel'
 import { SYS_COLOR } from './colors'
 import { ConstellationChart, Cn0Heatmap } from './SatCharts'
+import { SkyPlot } from './SkyPlot'
 
 const SAMPLE_URL = 'https://raw.githubusercontent.com/google/gps-measurement-tools/a1667c44a7b46a4ee116f5e3d6c8d464c66fe6c5/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
 const SOURCE_TEXT = {
@@ -46,37 +47,6 @@ const top4 = (sigs: Signal[]) => {
   return v.length ? v.reduce((a, b) => a + b, 0) / v.length : 0
 }
 
-function SkyPlot({ signals }: { signals: Signal[] }) {
-  const sats = satellitesOf(signals).filter((s) => s.az !== null && s.el !== null && s.el >= -5)
-  const c = 180, r = 140
-  return (
-    <svg className="sky-plot" viewBox="0 0 360 372" role="img" aria-label={`מפת שמיים: ${sats.length} לוויינים`}>
-      <circle cx={c} cy={c} r={r} className="sky-horizon" />
-      {[30, 60].map((el) => <circle key={el} cx={c} cy={c} r={r * (1 - el / 90)} className="sky-ring" />)}
-      <path d={`M ${c - r} ${c} H ${c + r} M ${c} ${c - r} V ${c + r}`} className="sky-crosshair" />
-      <text x={c + 4} y={c - r * (1 - 30 / 90) - 4} className="sky-ring-label">30°</text>
-      <text x={c + 4} y={c - r * (1 - 60 / 90) - 4} className="sky-ring-label">60°</text>
-      {sats.map((s) => {
-        const d = r * (1 - Math.max(0, s.el!) / 90)
-        const a = (s.az! * Math.PI) / 180
-        const color = SYS_COLOR[s.sys].dark
-        const tracked = (s.cn0 ?? 0) > 0
-        return (
-          <g key={`${s.sys}-${s.svid}`} transform={`translate(${c + d * Math.sin(a)} ${c - d * Math.cos(a)})`} opacity={tracked ? 1 : 0.45}>
-            {s.used === false ? <circle r="5" fill="#142a22" stroke={color} strokeWidth="2" /> : <circle r="6" fill={color} stroke="#142a22" strokeWidth="2" />}
-            <text x="9" y="-7" className="sky-label">{satLabel(s)}</text>
-            <title>{`${satLabel(s)} · ${s.sys} · אזימוט ${Math.round(s.az!)}° · גובה ${Math.round(s.el!)}°${s.cn0 ? ` · ${s.cn0.toFixed(0)} dB-Hz` : ''}${s.used ? ' · בשימוש' : ''}`}</title>
-          </g>
-        )
-      })}
-      <text x={c} y={c - r - 10} className="plot-direction" textAnchor="middle">N</text>
-      <text x={c + r + 12} y={c + 4} className="plot-direction" textAnchor="middle">E</text>
-      <text x={c} y={c + r + 22} className="plot-direction" textAnchor="middle">S</text>
-      <text x={c - r - 12} y={c + 4} className="plot-direction" textAnchor="middle">W</text>
-      {!sats.length && <text x={c} y={c + 5} className="plot-direction" textAnchor="middle">אין מיקומי לוויינים בלוג הזה</text>}
-    </svg>
-  )
-}
 
 function Help() {
   const [open, setOpen] = useState(false)

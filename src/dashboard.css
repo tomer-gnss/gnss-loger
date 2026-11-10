@@ -407,3 +407,21 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .heat-empty { display: inline-flex; align-items: center; gap: 5px; }
 .heat-empty i { width: 10px; height: 10px; border-radius: 2px; border: 1px solid var(--border); }
 @media (min-width: 960px) { .sat-charts { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); align-items: start; gap: 16px; } }
+
+/* Live satellites (predicted + external receiver) */
+.live-sats { display: flex; flex-direction: column; gap: 12px; }
+.live-sats > .panel-heading { margin-bottom: 0; }
+.live-sats-card { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+.live-sats-card h3 { display: flex; align-items: center; gap: 8px; margin: 0; color: var(--ink); font-size: 15.5px; font-weight: 650; }
+.live-sats-card h3 > svg { color: var(--series); }
+.live-sats-card h4 { margin: 4px 0 0; color: var(--ink); font-size: 14px; font-weight: 650; }
+.tag { padding: 2px 8px; border-radius: 999px; background: #fff4e0; color: #7a5200; font-size: 12px; font-weight: 650; }
+.tag.measured { background: #e3f2ea; color: var(--good); }
+.rx-connect { display: flex; flex-wrap: wrap; align-items: flex-end; gap: 10px; }
+.rx-connect .primary-button { margin-top: 0; }
+.rx-connect label { display: flex; flex-direction: column; gap: 4px; color: var(--text-2); font-size: 13px; }
+.rx-connect select { min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 10px; background: var(--surface); color: var(--ink); font: 15px var(--mono); }
+.rx-status { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 8px; padding: 10px 12px; border-radius: 10px; background: #f1f8f4; border: 1px solid #b9dfcf; color: var(--text-2); font-size: 13.5px; }
+.rx-status .text-button { margin-inline-start: auto; }
+.live-dot-inline { width: 9px; height: 9px; border-radius: 50%; background: var(--good); }
+.ghost-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px dashed #d6e2da; background: transparent !important; }

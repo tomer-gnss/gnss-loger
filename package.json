@@ -14,7 +14,8 @@
     "leaflet": "^1.9.4",
     "lucide-react": "^1.68.0",
     "react": "^19.3.1",
-    "react-dom": "^19.3.1"
+    "react-dom": "^19.3.1",
+    "satellite.js": "^7.1.0"
   },
   "devDependencies": {
     "@types/leaflet": "^1.9.20",

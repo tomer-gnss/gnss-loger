@@ -9,6 +9,7 @@ import { ErrorBoundary } from './ErrorBoundary'
 import { analyzeLive } from './integrity'
 import { IntegrityPanel } from './IntegrityPanel'
 import { useMotion } from './motion'
+import { LiveSats } from './LiveSats'
 import './dashboard.css'
 
 const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(6)}° ${v >= 0 ? pos : neg}`
@@ -225,6 +226,8 @@ function App() {
                 </>}
             </div>
           } /></ErrorBoundary>
+
+          <ErrorBoundary label="לוויינים בזמן אמת"><LiveSats phonePos={last ? { lat: last.lat, lon: last.lon, alt: last.alt } : null} /></ErrorBoundary>
 
           <section className="panel map-panel">
             <div className="panel-heading"><div><h2>מפה</h2><p>המסלול בסשן · העיגול הכתום: רדיוס הדיוק</p></div></div>

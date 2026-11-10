@@ -18,6 +18,8 @@ export type Signal = {
   used: boolean | null
   /** Automatic gain control level, dB (Android Raw records). Rises sharply under RF jamming. */
   agc?: number | null
+  /** Optional display name (predicted satellites without a reliable PRN). */
+  name?: string
   /** Baseband C/N0, dB-Hz (Android ≥ 11). Diverging from antenna C/N0 indicates in-band interference. */
   basebandCn0?: number | null
 }
@@ -264,8 +266,12 @@ export class LogParser {
   private clock: ClockSample[] = []
   private readonly fileName: string
 
-  constructor(fileName: string) {
+  /** Live streams (external receiver): NMEA without RMC has no date, so assume today (UTC). */
+  private readonly live: boolean
+
+  constructor(fileName: string, opts: { live?: boolean } = {}) {
     this.fileName = fileName
+    this.live = opts.live === true
   }
 
   push(rawLine: string) {
@@ -437,7 +443,7 @@ export class LogParser {
         if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) this.nmeaDate = Date.UTC(y, mo - 1, d)
       }
       const wrapper = validTime(wrapperMs) ? wrapperMs : null
-      const date = this.nmeaDate ?? (wrapper !== null ? Math.floor(wrapper / 86400000) * 86400000 : 0)
+      const date = this.nmeaDate ?? (wrapper !== null ? Math.floor(wrapper / 86400000) * 86400000 : this.live ? Math.floor(Date.now() / 86400000) * 86400000 : 0)
       const t = tod !== null ? date + tod : wrapper
       if (validTime(t) && t !== this.nmeaTime) this.flushNmea(t)
       if (type === 'GGA') {
@@ -544,6 +550,19 @@ export class LogParser {
     this.lines++
     this.bad++
   }
+
+  /**
+   * Live view of a stream still in progress (external receiver): completed NMEA epochs and fixes
+   * so far, without finishing the parser. Returns the most recent `max` of each.
+   */
+  snapshot(max = 1800): { epochs: Epoch[]; fixes: LogFix[]; lines: number; badLines: number } {
+    return {
+      epochs: this.nmeaEpochs.slice(-max),
+      fixes: this.fixes.slice(-max),
+      lines: this.lines,
+      badLines: this.bad,
+    }
+  }
 }
 
 export class LogTooLargeError extends Error {}
@@ -601,4 +620,5 @@ export function satellitesOf(signals: Signal[]) {
   return [...bySat.values()]
 }
 
-export const satLabel = (s: { sys: Sys; svid: number }) => `${SYS_PREFIX[s.sys]}${String(s.svid).padStart(2, '0')}`
+/** Display label: an explicit name when known (e.g. predicted GLONASS "R720"), else system prefix + svid. */
+export const satLabel = (s: { sys: Sys; svid: number; name?: string }) => s.name ?? `${SYS_PREFIX[s.sys]}${String(s.svid).padStart(2, '0')}`
