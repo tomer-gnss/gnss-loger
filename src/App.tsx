@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Activity, AlertTriangle, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Share, Sun, Timer, Trash2, Vibrate, X } from 'lucide-react'
+import { Activity, AlertTriangle, ChartLine, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Share, Sun, Timer, Trash2, Vibrate, X } from 'lucide-react'
 import { gradeAccuracy, isApproximate, stats, toCsv, useGeolocation, useWakeLock, type Fix, type Gap, type GeoStatus } from './geo'
 import { dismissInstallHint, installHintDismissed, isIOS, isIOSSafari, isStandalone } from './device'
 import { Compass, ScatterPlot, TimeChart } from './LiveCharts'
@@ -10,6 +10,9 @@ import { analyzeLive } from './integrity'
 import { IntegrityPanel } from './IntegrityPanel'
 import { useMotion } from './motion'
 import { LiveSats } from './LiveSats'
+import { PlotsView } from './PlotsView'
+import { useSerialReceiver } from './serialReceiver'
+import type { ParsedLog } from './logParser'
 import './dashboard.css'
 
 const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(6)}° ${v >= 0 ? pos : neg}`
@@ -129,7 +132,10 @@ function App() {
   const geo = useGeolocation()
   const [keepAwake, setKeepAwake] = useState(true)
   const wake = useWakeLock(keepAwake && geo.running)
-  const [tab, setTab] = useState<'live' | 'log'>('live')
+  const [tab, setTab] = useState<'live' | 'log' | 'plots'>('live')
+  // Shared across tabs so a loaded log and a connected receiver survive switching.
+  const rx = useSerialReceiver()
+  const [log, setLog] = useState<ParsedLog | null>(null)
   const [copied, setCopied] = useState(false)
   const s = useMemo(() => stats(geo.fixes), [geo.fixes])
   const last = s.last
@@ -181,10 +187,11 @@ function App() {
       <nav className="mode-tabs" aria-label="מצב תצוגה">
         <button className={tab === 'live' ? 'active' : ''} aria-pressed={tab === 'live'} onClick={() => setTab('live')}><Activity size={17} /> מעקב חי</button>
         <button className={tab === 'log' ? 'active' : ''} aria-pressed={tab === 'log'} onClick={() => setTab('log')}><Satellite size={17} /> ניתוח לוג</button>
+        <button className={tab === 'plots' ? 'active' : ''} aria-pressed={tab === 'plots'} onClick={() => setTab('plots')}><ChartLine size={17} /> גרפים</button>
       </nav>
 
       <main className="dashboard">
-        {tab === 'log' ? <ErrorBoundary label="ניתוח הלוג"><LogView /></ErrorBoundary> : <>
+        {tab === 'log' ? <ErrorBoundary label="ניתוח הלוג"><LogView log={log} setLog={setLog} /></ErrorBoundary> : tab === 'plots' ? <ErrorBoundary label="גרפים"><PlotsView rx={rx} log={log} setLog={setLog} /></ErrorBoundary> : <>
         {!last && <InstallHint />}
         {(!last || geo.status === 'denied' || geo.status === 'insecure') && <StatusCard status={geo.status} message={geo.message} onStart={geo.start} />}
         {isApproximate(geo.fixes) && <ApproximateCard />}
@@ -227,7 +234,7 @@ function App() {
             </div>
           } /></ErrorBoundary>
 
-          <ErrorBoundary label="לוויינים בזמן אמת"><LiveSats phonePos={last ? { lat: last.lat, lon: last.lon, alt: last.alt } : null} /></ErrorBoundary>
+          <ErrorBoundary label="לוויינים בזמן אמת"><LiveSats phonePos={last ? { lat: last.lat, lon: last.lon, alt: last.alt } : null} rx={rx} /></ErrorBoundary>
 
           <section className="panel map-panel">
             <div className="panel-heading"><div><h2>מפה</h2><p>המסלול בסשן · העיגול הכתום: רדיוס הדיוק</p></div></div>

@@ -118,3 +118,6 @@ export function useSerialReceiver() {
 
   return { state, error, data, info, timeOffsetMs, connect, disconnect, supported: state !== 'unsupported' }
 }
+
+/** The live receiver connection, shared by the tabs (lives in App so it survives tab switches). */
+export type SerialReceiver = ReturnType<typeof useSerialReceiver>

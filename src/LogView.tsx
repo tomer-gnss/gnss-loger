@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react'
-import { ChevronDown, FileText, FolderOpen, Gauge, Pause, Play, RotateCcw, Satellite, Upload } from 'lucide-react'
+import { FileText, FolderOpen, Gauge, Pause, Play, RotateCcw, Satellite, Upload } from 'lucide-react'
 import { parseLogFile, satellitesOf, satLabel, SYS_ORDER, type LogFix, type ParsedLog, type Signal, type Sys } from './logParser'
 import { TimeChart } from './LiveCharts'
 import { MapView } from './MapView'
@@ -9,8 +9,9 @@ import { IntegrityPanel } from './IntegrityPanel'
 import { SYS_COLOR } from './colors'
 import { ConstellationChart, Cn0Heatmap } from './SatCharts'
 import { SkyPlot } from './SkyPlot'
+import { RecordGuide } from './RecordGuide'
 
-const SAMPLE_URL = 'https://raw.githubusercontent.com/google/gps-measurement-tools/a1667c44a7b46a4ee116f5e3d6c8d464c66fe6c5/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
+import { SAMPLE_URL } from './logLoader'
 const SOURCE_TEXT = {
   Status: 'GnssStatus: אזימוט, גובה, C/N₀ ושימוש בפתרון לכל לוויין',
   NMEA: 'NMEA (GSV/GSA): אזימוט, גובה, C/N₀ ושימוש בפתרון',
@@ -48,23 +49,8 @@ const top4 = (sigs: Signal[]) => {
 }
 
 
-function Help() {
-  const [open, setOpen] = useState(false)
-  return (
-    <div className="help">
-      <button className="help-toggle" onClick={() => setOpen(!open)} aria-expanded={open}><span>איך מקליטים לוג?</span><ChevronDown size={18} className={open ? 'flip' : ''} /></button>
-      {open && <div className="help-body">
-        <p><b>GPSTest</b> (Android, חינם): בהגדרות האפליקציה, בקטגוריית הרישום (Logging), הפעל רישום לקובץ CSV ו/או NMEA. הקלט כמה דקות בשמיים פתוחים, ואז שתף את הקובץ מהאפליקציה או העתק אותו לטלפון.</p>
-        <p><b>GnssLogger</b> של Google: בלשונית Settings הפעל Status, Fix, Raw ו-NMEA. בלשונית Log לחץ Start Log, ובסיום Stop &amp; Send ושמור את הקובץ.</p>
-        <p><b>מקלט חיצוני</b> (u-blox וכו׳): קובץ NMEA רגיל (‎.nmea / ‎.txt) נתמך.</p>
-        <p className="muted">באייפון אין גישה לנתוני לוויינים, ולכן אין אפליקציה שמקליטה אותם.</p>
-      </div>}
-    </div>
-  )
-}
 
-export function LogView() {
-  const [log, setLog] = useState<ParsedLog | null>(null)
+export function LogView({ log, setLog }: { log: ParsedLog | null; setLog: (l: ParsedLog | null) => void }) {
   const [busy, setBusy] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [idx, setIdx] = useState(0)
@@ -176,7 +162,7 @@ export function LogView() {
         {busy !== null && <div className="progress"><span style={{ width: `${Math.round(busy * 100)}%` }} /></div>}
         {error && <p className="error-text">{error}</p>}
       </section>
-      <Help />
+      <RecordGuide />
     </>
   )
 

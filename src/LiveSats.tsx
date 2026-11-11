@@ -10,7 +10,7 @@ import { Bluetooth, Orbit, Plug, Unplug } from 'lucide-react'
 import { SYS_ORDER, type Epoch, type Signal, type Sys } from './logParser'
 import type { OrbitSat } from './orbits'
 import type { PredictedSat } from './skyMath'
-import { useSerialReceiver } from './serialReceiver'
+import type { SerialReceiver } from './serialReceiver'
 import { SkyPlot } from './SkyPlot'
 import { ConstellationChart, Cn0Heatmap } from './SatCharts'
 import { IntegrityPanel } from './IntegrityPanel'
@@ -42,7 +42,7 @@ function CountChips({ pred }: { pred: PredictedSat[] }) {
   )
 }
 
-export function LiveSats({ phonePos }: { phonePos: { lat: number; lon: number; alt: number | null } | null }) {
+export function LiveSats({ phonePos, rx }: { phonePos: { lat: number; lon: number; alt: number | null } | null; rx: SerialReceiver }) {
   // ---------- A. predicted ----------
   const [consent, setConsent] = useState(readConsent)
   // The SGP4 module (and its library) is downloaded only after the user opts in.
@@ -64,7 +64,6 @@ export function LiveSats({ phonePos }: { phonePos: { lat: number; lon: number; a
   }, [orbits])
 
   // ---------- B. external receiver ----------
-  const rx = useSerialReceiver()
   const [baud, setBaud] = useState(9600)
   const rxFix = rx.data.fixes[rx.data.fixes.length - 1] ?? null
   const rxEpoch = rx.data.epochs[rx.data.epochs.length - 1] ?? null

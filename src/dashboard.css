@@ -174,7 +174,7 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .text-button { flex: none; display: inline-flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 14px; border: 1px solid var(--border); border-radius: 10px; background: #f6f8f4; color: var(--ink); font-size: 14px; font-weight: 600; }
 
 /* Mode tabs (live / log) */
-.mode-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; max-width: 1240px; margin: 12px auto 0; padding: 4px; border-radius: 12px; background: #e4e9e2; width: calc(100% - 2 * max(16px, env(safe-area-inset-left))); }
+.mode-tabs { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 4px; max-width: 1240px; margin: 12px auto 0; padding: 4px; border-radius: 12px; background: #e4e9e2; width: calc(100% - 2 * max(16px, env(safe-area-inset-left))); }
 .mode-tabs button { display: inline-flex; align-items: center; justify-content: center; gap: 7px; min-height: 44px; border: 0; border-radius: 9px; background: transparent; color: var(--text-2); font-size: 15px; font-weight: 600; }
 .mode-tabs button.active { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(31, 57, 43, 0.15); }
 
@@ -425,3 +425,46 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .rx-status .text-button { margin-inline-start: auto; }
 .live-dot-inline { width: 9px; height: 9px; border-radius: 50%; background: var(--good); }
 .ghost-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; border: 1.5px dashed #d6e2da; background: transparent !important; }
+
+/* ---------- Plots tab: C/N0 vs time ---------- */
+.plots { display: flex; flex-direction: column; gap: 12px; }
+.plots > .panel-heading { margin-bottom: 0; }
+.plots h2 { font-size: 18px; }
+.seg { display: flex; flex-wrap: wrap; gap: 4px; padding: 4px; border-radius: 12px; background: #e4e9e2; }
+.seg button { flex: 1 1 0; display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 44px; min-width: 0; padding: 0 10px; border: 0; border-radius: 9px; background: transparent; color: var(--text-2); font-size: 14px; font-weight: 600; }
+.seg button.active { background: #fff; color: var(--ink); box-shadow: 0 1px 3px rgba(31, 57, 43, 0.15); }
+.seg.small { align-self: flex-start; }
+.seg.small button { flex: 0 0 auto; min-width: 52px; font-size: 13.5px; }
+.plots-load { display: flex; flex-direction: column; align-items: center; gap: 6px; text-align: center; }
+.plots-load .primary-button { margin-top: 0; }
+.replay-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.icon-button { flex: none; display: inline-flex; align-items: center; justify-content: center; width: 48px; height: 48px; border: 0; border-radius: 50%; background: var(--mint); color: var(--ink); }
+.replay-bar .scrub { flex: 1 1 100%; min-width: 0; height: 44px; accent-color: var(--series); }
+.plots-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.plots-stats > div { display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 10px; border-radius: 10px; background: #f6f8f4; }
+.plots-stats strong { color: var(--ink); font: 650 20px/1.2 var(--mono); }
+.plots-stats small { color: var(--muted); font: 11.5px var(--mono); }
+.stat-label { color: var(--muted); font-size: 12px; font-weight: 600; line-height: 1.25; }
+.cn0-chart .chart-tip { top: 18px; }
+.axis-title { color: var(--muted); font: 11.5px var(--mono); }
+.axis-title.x { text-align: right; margin-top: 2px; }
+.x-ticks { position: relative; height: 16px; color: var(--muted); font: 11px var(--mono); }
+.x-ticks span { position: absolute; top: 2px; transform: translateX(-50%); }
+.ref-line { stroke: var(--critical); stroke-width: 1.2; stroke-dasharray: 5 4; opacity: 0.7; }
+.sys-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.sys-filter .chip { min-height: 36px; border: 0; font-size: 13px; }
+.sys-filter .chip b { color: var(--ink); font: 650 13px var(--mono); }
+.sys-filter .chip.off { background: transparent; outline: 1px dashed var(--border); color: var(--muted); text-decoration: line-through; }
+.sys-filter .chip.off i { opacity: 0.35; }
+.ref-key { display: inline-flex; align-items: center; gap: 6px; color: var(--muted); font-size: 12.5px; }
+.ref-key i { width: 18px; border-top: 2px dashed var(--critical); opacity: 0.7; }
+.plots-sub { font-size: 14px; color: var(--ink); }
+.sig-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; }
+.sig-chip { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-2); font: 12.5px var(--mono); }
+.sig-chip i { flex: none; width: 9px; height: 9px; border-radius: 50%; }
+.sig-chip b { margin-inline-start: auto; color: var(--ink); font-weight: 650; }
+.sig-chip.focus { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
+.record-guide h4 { margin-top: 4px; color: var(--ink); font-size: 14.5px; }
+.record-guide .steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-inline-start: 20px; }
+.record-guide.android { border-color: #b9dfcf; }
+.inline-icon { vertical-align: -3px; }
