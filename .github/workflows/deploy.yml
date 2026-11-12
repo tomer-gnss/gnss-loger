@@ -8,6 +8,7 @@
 # - No dependency cache: every deploy downloads fresh, lockfile-verified packages.
 # - Every package must come from registry.npmjs.org with a sha512 hash, carry a valid registry
 #   signature, and install without running package scripts.
+# - Lint and unit tests (parsers, hostile input, GNSS-vs-cellular) must pass before deploying.
 # - The build fails on a known high/critical vulnerability in shipped code, or a critical one
 #   (including published malware) in the build tools.
 name: Deploy to GitHub Pages
@@ -49,6 +50,9 @@ jobs:
       - run: npm audit signatures
       - run: npm audit --omit=dev --audit-level=high
       - run: npm audit --audit-level=critical
+      # Nothing ships unless lint and the parser/analysis tests pass.
+      - run: npm run lint
+      - run: npm test
       # Pages serves the site under /<repo-name>/, so assets must use that base path.
       - run: npm run build -- --base="/$REPO_NAME/"
         env:

@@ -1,0 +1,17 @@
+{
+  "name": "אטלס GNSS",
+  "short_name": "אטלס GNSS",
+  "description": "מקלט ה-GNSS של הטלפון בזמן אמת, ניתוח לוגים וזיהוי שיבוש וזיוף. הכל במכשיר.",
+  "lang": "he",
+  "dir": "rtl",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#f3f5f0",
+  "theme_color": "#142a22",
+  "icons": [
+    { "src": "icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

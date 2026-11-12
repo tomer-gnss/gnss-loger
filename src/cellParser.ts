@@ -141,6 +141,10 @@ export class CellParser {
       if (found.length) idx.set(col, found)
     }
     if (!idx.has('time') || !idx.has('level')) return false
+    // RSSI runs ~20–30 dB above RSRP: never mix it into a file that has a proper level column,
+    // or a row with RSRP missing would show up as a false jump.
+    const rssi = pos.get('rssi'), levels = idx.get('level')!
+    if (rssi !== undefined && levels.length > 1) idx.set('level', levels.filter((i) => i !== rssi))
     this.idx = idx; this.delim = delim
     this.format = pos.has('measured_at') && pos.has('short_cell_id') ? 'Tower Collector' : pos.has('networktech') ? 'G-NetTrack' : 'CSV'
     return true

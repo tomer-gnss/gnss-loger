@@ -5,6 +5,8 @@
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <!-- iPhone home-screen icon (180×180, iOS applies the rounded mask itself) -->
     <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <!-- Home-screen name and icons (Android; recent iOS reads it too). Same-origin only (CSP manifest-src). -->
+    <link rel="manifest" href="/manifest.webmanifest" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -14,6 +16,8 @@
     <!-- Coordinates and numbers must never turn into tap-to-call links -->
     <meta name="format-detection" content="telephone=no, date=no, address=no, email=no" />
     <meta name="theme-color" content="#142a22" />
+    <!-- The design is light-only: keep form controls light when the phone is in dark mode. -->
+    <meta name="color-scheme" content="light" />
     <!-- Other sites only ever learn the origin, never page URLs (OSM's tile policy needs the origin). -->
     <meta name="referrer" content="strict-origin" />
     <!-- Personal tool: keep it out of search engines. -->

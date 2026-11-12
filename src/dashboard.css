@@ -452,7 +452,7 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .x-ticks span { position: absolute; top: 2px; transform: translateX(-50%); }
 .ref-line { stroke: var(--critical); stroke-width: 1.2; stroke-dasharray: 5 4; opacity: 0.7; }
 .sys-filter { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
-.sys-filter .chip { min-height: 36px; border: 0; font-size: 13px; }
+.sys-filter .chip { min-height: 44px; border: 0; font-size: 13px; }
 .sys-filter .chip b { color: var(--ink); font: 650 13px var(--mono); }
 .sys-filter .chip.off { background: transparent; outline: 1px dashed var(--border); color: var(--muted); text-decoration: line-through; }
 .sys-filter .chip.off i { opacity: 0.35; }
@@ -460,7 +460,7 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .ref-key i { width: 18px; border-top: 2px dashed var(--critical); opacity: 0.7; }
 .plots-sub { font-size: 14px; color: var(--ink); }
 .sig-chips { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 6px; }
-.sig-chip { display: flex; align-items: center; gap: 6px; min-height: 40px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-2); font: 12.5px var(--mono); }
+.sig-chip { display: flex; align-items: center; gap: 6px; min-height: 44px; padding: 0 10px; border: 1px solid var(--border); border-radius: 8px; background: var(--surface); color: var(--text-2); font: 12.5px var(--mono); }
 .sig-chip i { flex: none; width: 9px; height: 9px; border-radius: 50%; }
 .sig-chip b { margin-inline-start: auto; color: var(--ink); font-weight: 650; }
 .sig-chip.focus { border-color: var(--ink); box-shadow: inset 0 0 0 1px var(--ink); }
@@ -485,3 +485,19 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .cmp-nums b { color: var(--ink); font: 650 13px var(--mono); }
 .cmp-item .link-button { align-self: flex-start; padding-inline: 0; }
 .plots .steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-inline-start: 20px; }
+
+/* ---------- Welcome (first visit) + footer strip ---------- */
+.welcome-backdrop { position: fixed; inset: 0; z-index: 2000; display: flex; align-items: flex-end; justify-content: center; padding: env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left); background: rgba(10, 24, 18, 0.55); }
+.welcome { display: flex; flex-direction: column; gap: 12px; width: min(560px, 100%); max-height: calc(100dvh - 24px - env(safe-area-inset-top)); overflow-y: auto; overscroll-behavior: contain; padding: 22px 20px calc(20px + env(safe-area-inset-bottom)); border-radius: 18px 18px 0 0; background: var(--surface); color: var(--text-2); font-size: 14.5px; line-height: 1.5; box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.2); }
+.welcome h2 { color: var(--ink); font-size: 20px; }
+.welcome h3 { color: var(--ink); font-size: 15.5px; }
+.welcome-tabs { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.welcome-tabs li, .welcome-privacy { display: flex; align-items: flex-start; gap: 10px; }
+.welcome-tabs svg, .welcome-privacy svg { flex: none; margin-top: 3px; color: var(--series); }
+.welcome-privacy { padding: 12px; border-radius: 12px; background: #f1f8f4; border: 1px solid #b9dfcf; }
+.welcome .steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-inline-start: 20px; }
+.welcome .primary-button { align-self: stretch; margin-top: 4px; }
+@media (min-width: 640px) { .welcome-backdrop { align-items: center; } .welcome { border-radius: 18px; } }
+.app-info { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 12px 2px 4px; border-top: 1px solid var(--border); color: var(--muted); font-size: 12.5px; }
+.app-version { font-family: var(--mono); }
+.app-info-actions { display: flex; flex-wrap: wrap; gap: 8px; }

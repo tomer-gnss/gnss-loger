@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Activity, AlertTriangle, ChartLine, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Share, Sun, Timer, Trash2, Vibrate, X } from 'lucide-react'
 import { gradeAccuracy, isApproximate, stats, toCsv, useGeolocation, useWakeLock, type Fix, type Gap, type GeoStatus } from './geo'
 import { dismissInstallHint, installHintDismissed, isIOS, isIOSSafari, isStandalone } from './device'
@@ -14,6 +14,8 @@ import { PlotsView } from './PlotsView'
 import { useSerialReceiver } from './serialReceiver'
 import type { ParsedLog } from './logParser'
 import type { CellLog } from './cellParser'
+import { AppInfo, Welcome } from './AppInfo'
+import { welcomeSeen } from './localData'
 import './dashboard.css'
 
 const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(6)}° ${v >= 0 ? pos : neg}`
@@ -139,6 +141,9 @@ function App() {
   const [log, setLog] = useState<ParsedLog | null>(null)
   const [cell, setCell] = useState<CellLog | null>(null)
   const [copied, setCopied] = useState(false)
+  // First visit on this device: a short welcome (also reopenable from the footer).
+  const [welcome, setWelcome] = useState(() => !welcomeSeen())
+  const closeWelcome = useCallback(() => setWelcome(false), [])
   const s = useMemo(() => stats(geo.fixes), [geo.fixes])
   const last = s.last
   const grade = last ? gradeAccuracy(last.acc) : null
@@ -318,7 +323,9 @@ function App() {
           <p>מקור: Geolocation API של הדפדפן · דיוק גבוה · ללא מטמון. קצב העדכון נקבע על ידי מערכת ההפעלה, בדרך כלל 1 Hz.</p>
         </footer>
         </>}
+        <AppInfo onWelcome={() => setWelcome(true)} />
       </main>
+      {welcome && <Welcome onClose={closeWelcome} />}
 
       {tab === 'live' && <nav className="action-bar" aria-label="פעולות">
         {geo.running
