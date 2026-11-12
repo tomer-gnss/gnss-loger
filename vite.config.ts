@@ -1,6 +1,7 @@
 import basicSsl from '@vitejs/plugin-basic-ssl'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type Plugin } from 'vite'
+import pkg from './package.json' with { type: 'json' }
 
 // The only third-party data the app ever fetches, each on explicit user action:
 // a sample log pinned to an exact commit, and the public GNSS orbit catalogue (no user data sent).
@@ -14,7 +15,8 @@ const ORBITS = 'https://celestrak.org/NORAD/elements/gp.php'
 //  - images only from this site and the OpenStreetMap tile server (after the user opts in)
 //  - network only to the pinned sample file and the CelesTrak orbit endpoint (both opt-in)
 //  - Trusted Types: no raw strings into HTML sinks (see src/trustedTypes.ts)
-//  - no plugins, workers, frames, fonts, manifests, <base> hijack or form posts
+//  - the web-app manifest from this site only (home-screen name/icon)
+//  - no plugins, workers, frames, fonts, <base> hijack or form posts
 const CSP = [
   "default-src 'none'",
   "script-src 'self'",
@@ -22,7 +24,7 @@ const CSP = [
   "img-src 'self' data: https://tile.openstreetmap.org",
   `connect-src 'self' ${SAMPLE_LOG} ${ORBITS}`,
   "font-src 'none'",
-  "manifest-src 'none'",
+  "manifest-src 'self'",
   "worker-src 'none'",
   "frame-src 'none'",
   "media-src 'none'",
@@ -50,4 +52,10 @@ function securityHeaders(): Plugin {
 // (adds --host) — and only on a network you trust.
 export default defineConfig({
   plugins: [react(), basicSsl(), securityHeaders()],
+  // Shown in the app footer, so a user can tell which build they run. GITHUB_SHA is set by Actions.
+  define: {
+    __APP_VERSION__: JSON.stringify(pkg.version),
+    __BUILD_SHA__: JSON.stringify((process.env.GITHUB_SHA ?? 'local').slice(0, 7)),
+    __BUILD_DATE__: JSON.stringify(new Date().toISOString().slice(0, 10)),
+  },
 })
