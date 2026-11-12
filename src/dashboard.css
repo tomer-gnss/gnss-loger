@@ -468,3 +468,20 @@ tbody tr:first-child td { color: var(--ink); font-weight: 650; }
 .record-guide .steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-inline-start: 20px; }
 .record-guide.android { border-color: #b9dfcf; }
 .inline-icon { vertical-align: -3px; }
+
+/* ---------- Plots tab: cellular ---------- */
+.file-row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; padding: 8px 12px; border: 1px solid var(--border); border-radius: 10px; color: var(--text-2); font-size: 13.5px; }
+.file-row > span { display: inline-flex; flex-wrap: wrap; align-items: center; gap: 6px; min-width: 0; overflow-wrap: anywhere; }
+.cell-block { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; border-top: 1px solid var(--border); }
+.cell-block .chip b { color: var(--ink); font: 650 13px var(--mono); }
+.plots-sub { display: inline-flex; align-items: center; gap: 6px; }
+.handover-tick { stroke: var(--ink); stroke-width: 1.5; }
+.handover-key { width: 2px !important; height: 10px !important; border-radius: 0 !important; background: var(--ink); }
+.cmp-list { display: flex; flex-direction: column; gap: 8px; margin: 0; padding: 0; list-style: none; }
+.cmp-item { display: flex; flex-direction: column; gap: 4px; padding: 10px 12px; border: 1px solid var(--border); border-inline-start: 4px solid #8a978f; border-radius: 10px; }
+.cmp-item.gnss-only { border-inline-start-color: var(--critical); background: #fdf6f5; }
+.cmp-head { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 6px; color: var(--ink); }
+.cmp-nums { color: var(--text-2); font-size: 13.5px; }
+.cmp-nums b { color: var(--ink); font: 650 13px var(--mono); }
+.cmp-item .link-button { align-self: flex-start; padding-inline: 0; }
+.plots .steps { display: flex; flex-direction: column; gap: 6px; margin: 0; padding-inline-start: 20px; }

@@ -15,3 +15,6 @@ export const SYS_COLOR: Record<Sys, { light: string; dark: string }> = {
 
 // Sequential single-hue ramp (blue, light → dark) for magnitude: the C/N0 heatmap.
 export const SEQ_BLUE = ['#cde2fb', '#b7d3f6', '#9ec5f4', '#86b6ef', '#6da7ec', '#5598e7', '#3987e5', '#2a78d6', '#256abf', '#1c5cab', '#184f95', '#104281', '#0d366b']
+
+// Cellular network generation (cellular chart). Drawn from the same validated palette.
+export const TECH_COLOR: Record<'2G' | '3G' | '4G' | '5G', string> = { '5G': '#6250d6', '4G': '#1c5cab', '3G': '#c98500', '2G': '#898781' }

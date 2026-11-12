@@ -13,6 +13,7 @@ import { LiveSats } from './LiveSats'
 import { PlotsView } from './PlotsView'
 import { useSerialReceiver } from './serialReceiver'
 import type { ParsedLog } from './logParser'
+import type { CellLog } from './cellParser'
 import './dashboard.css'
 
 const fmtCoord = (v: number, pos: string, neg: string) => `${Math.abs(v).toFixed(6)}° ${v >= 0 ? pos : neg}`
@@ -136,6 +137,7 @@ function App() {
   // Shared across tabs so a loaded log and a connected receiver survive switching.
   const rx = useSerialReceiver()
   const [log, setLog] = useState<ParsedLog | null>(null)
+  const [cell, setCell] = useState<CellLog | null>(null)
   const [copied, setCopied] = useState(false)
   const s = useMemo(() => stats(geo.fixes), [geo.fixes])
   const last = s.last
@@ -191,7 +193,7 @@ function App() {
       </nav>
 
       <main className="dashboard">
-        {tab === 'log' ? <ErrorBoundary label="ניתוח הלוג"><LogView log={log} setLog={setLog} /></ErrorBoundary> : tab === 'plots' ? <ErrorBoundary label="גרפים"><PlotsView rx={rx} log={log} setLog={setLog} /></ErrorBoundary> : <>
+        {tab === 'log' ? <ErrorBoundary label="ניתוח הלוג"><LogView log={log} setLog={setLog} /></ErrorBoundary> : tab === 'plots' ? <ErrorBoundary label="גרפים"><PlotsView rx={rx} log={log} setLog={setLog} cell={cell} setCell={setCell} /></ErrorBoundary> : <>
         {!last && <InstallHint />}
         {(!last || geo.status === 'denied' || geo.status === 'insecure') && <StatusCard status={geo.status} message={geo.message} onStart={geo.start} />}
         {isApproximate(geo.fixes) && <ApproximateCard />}
