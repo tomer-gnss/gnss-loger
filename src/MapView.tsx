@@ -24,10 +24,27 @@ type MapProps = {
 // Consent is per mode (live / log) and per browser session: turning the map on to look at a log
 // must not silently start streaming tiles around the user's real position next time.
 const consentKey = (mode: MapProps['mode']) => `atlas.map.${mode}`
-const readConsent = (mode: MapProps['mode']) => { try { return sessionStorage.getItem(consentKey(mode)) === '1' } catch { return false } }
-const writeConsent = (mode: MapProps['mode'], on: boolean) => { try { if (on) sessionStorage.setItem(consentKey(mode), '1'); else sessionStorage.removeItem(consentKey(mode)) } catch { /* storage blocked */ } }
+const readConsent = (mode: MapProps['mode']) => {
+  try {
+    return sessionStorage.getItem(consentKey(mode)) === '1'
+  } catch {
+    return false
+  }
+}
+const writeConsent = (mode: MapProps['mode'], on: boolean) => {
+  try {
+    if (on) sessionStorage.setItem(consentKey(mode), '1')
+    else sessionStorage.removeItem(consentKey(mode))
+  } catch {
+    /* storage blocked */
+  }
+}
 // Older builds remembered consent permanently; forget it.
-try { localStorage.removeItem('atlas.mapConsent') } catch { /* storage blocked */ }
+try {
+  localStorage.removeItem('atlas.mapConsent')
+} catch {
+  /* storage blocked */
+}
 
 const LINK = 'target="_blank" rel="noopener noreferrer"'
 
@@ -38,13 +55,35 @@ const LINK = 'target="_blank" rel="noopener noreferrer"'
  */
 export function MapView(props: MapProps) {
   const [consent, setConsent] = useState(() => readConsent(props.mode))
-  if (!consent) return (
-    <div className="map-consent">
-      <p><b>המפה כבויה כדי לשמור על הפרטיות שלך.</b> הצגת המפה טוענת אריחי מפה מהשרתים של OpenStreetMap. מהאריחים שמתבקשים אפשר להבין {props.mode === 'follow' ? 'את האזור שבו אתה נמצא' : 'את האזור של הלוג'}, יחד עם כתובת ה-IP שלך. {props.mode === 'follow' ? 'בלי המפה, המיקום לא יוצא מהמכשיר.' : ''} ההסכמה תקפה רק ללשונית הזו ועד שתסגור את הדפדפן.</p>
-      <button className="primary-button" onClick={() => { writeConsent(props.mode, true); setConsent(true) }}>הצג מפה</button>
-    </div>
+  if (!consent)
+    return (
+      <div className="map-consent">
+        <p>
+          <b>המפה כבויה כדי לשמור על הפרטיות שלך.</b> הצגת המפה טוענת אריחי מפה מהשרתים של OpenStreetMap. מהאריחים
+          שמתבקשים אפשר להבין {props.mode === 'follow' ? 'את האזור שבו אתה נמצא' : 'את האזור של הלוג'}, יחד עם כתובת
+          ה-IP שלך. {props.mode === 'follow' ? 'בלי המפה, המיקום לא יוצא מהמכשיר.' : ''} ההסכמה תקפה רק ללשונית הזו ועד
+          שתסגור את הדפדפן.
+        </p>
+        <button
+          className="primary-button"
+          onClick={() => {
+            writeConsent(props.mode, true)
+            setConsent(true)
+          }}
+        >
+          הצג מפה
+        </button>
+      </div>
+    )
+  return (
+    <MapInner
+      {...props}
+      onDisable={() => {
+        writeConsent(props.mode, false)
+        setConsent(false)
+      }}
+    />
   )
-  return <MapInner {...props} onDisable={() => { writeConsent(props.mode, false); setConsent(false) }} />
 }
 
 function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDisable: () => void }) {
@@ -66,16 +105,37 @@ function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDi
       attribution: `&copy; <a href="https://www.openstreetmap.org/copyright" ${LINK}>OpenStreetMap</a>`,
     }).addTo(m)
     const line = L.polyline([], { color: '#23845d', weight: 3, opacity: 0.9 }).addTo(m)
-    const acc = L.circle([0, 0], { radius: 0, color: '#d0703f', weight: 1.5, dashArray: '4 3', fillColor: '#d0703f', fillOpacity: 0.12 }).addTo(m)
-    const dot = L.circleMarker([0, 0], { radius: 7, color: '#ffffff', weight: 2.5, fillColor: '#d0703f', fillOpacity: 1 }).addTo(m)
+    const acc = L.circle([0, 0], {
+      radius: 0,
+      color: '#d0703f',
+      weight: 1.5,
+      dashArray: '4 3',
+      fillColor: '#d0703f',
+      fillOpacity: 0.12,
+    }).addTo(m)
+    const dot = L.circleMarker([0, 0], {
+      radius: 7,
+      color: '#ffffff',
+      weight: 2.5,
+      fillColor: '#d0703f',
+      fillOpacity: 1,
+    }).addTo(m)
     m.setView([31.5, 34.9], 7)
     // The user took over: stop auto-centring until they press "centre".
-    m.on('dragstart', () => { followRef.current = false; setFollowing(false) })
+    m.on('dragstart', () => {
+      followRef.current = false
+      setFollowing(false)
+    })
     map.current = m
     layers.current = { line, acc, dot }
     const ro = new ResizeObserver(() => m.invalidateSize())
     ro.observe(box.current)
-    return () => { ro.disconnect(); m.remove(); map.current = null; layers.current = null }
+    return () => {
+      ro.disconnect()
+      m.remove()
+      map.current = null
+      layers.current = null
+    }
   }, [])
 
   // Track polyline.
@@ -92,7 +152,10 @@ function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDi
   useEffect(() => {
     const m = map.current
     if (!m || mode !== 'fit' || !track.length) return
-    m.fitBounds(L.latLngBounds(track.map((p) => [p.lat, p.lon] as [number, number])), { padding: [24, 24], maxZoom: 18 })
+    m.fitBounds(L.latLngBounds(track.map((p) => [p.lat, p.lon] as [number, number])), {
+      padding: [24, 24],
+      maxZoom: 18,
+    })
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [fitKey, mode])
 
@@ -101,7 +164,11 @@ function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDi
     const m = map.current
     const l = layers.current
     if (!m || !l) return
-    if (!current) { l.dot.setStyle({ opacity: 0, fillOpacity: 0 }); l.acc.setRadius(0); return }
+    if (!current) {
+      l.dot.setStyle({ opacity: 0, fillOpacity: 0 })
+      l.acc.setRadius(0)
+      return
+    }
     const ll: L.LatLngExpression = [current.lat, current.lon]
     l.dot.setLatLng(ll).setStyle({ opacity: 1, fillOpacity: 1 })
     l.acc.setLatLng(ll).setRadius(current.acc ?? 0)
@@ -122,10 +189,22 @@ function MapInner({ track, current, mode, fitKey, onDisable }: MapProps & { onDi
     <div className={`map-wrap ${full ? 'is-full' : ''}`}>
       <div ref={box} className="map-box" dir="ltr" role="region" aria-label="מפה" />
       <div className="map-buttons">
-        <button className="map-btn" onClick={() => setFull(!full)} aria-label={full ? 'צמצם מפה' : 'מפה במסך מלא'}>{full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}</button>
-        {mode === 'follow' && !following && current && <button className="map-btn label" onClick={recentre}><Crosshair size={17} /> מרכז</button>}
+        <button className="map-btn" onClick={() => setFull(!full)} aria-label={full ? 'צמצם מפה' : 'מפה במסך מלא'}>
+          {full ? <Minimize2 size={18} /> : <Maximize2 size={18} />}
+        </button>
+        {mode === 'follow' && !following && current && (
+          <button className="map-btn label" onClick={recentre}>
+            <Crosshair size={17} /> מרכז
+          </button>
+        )}
       </div>
-      <div className="map-status"><span className="map-live-dot" />המפה פעילה: נטענים אריחים מ-OpenStreetMap<button className="map-off" onClick={onDisable}><EyeOff size={15} /> כבה מפה</button></div>
+      <div className="map-status">
+        <span className="map-live-dot" />
+        המפה פעילה: נטענים אריחים מ-OpenStreetMap
+        <button className="map-off" onClick={onDisable}>
+          <EyeOff size={15} /> כבה מפה
+        </button>
+      </div>
     </div>
   )
 }

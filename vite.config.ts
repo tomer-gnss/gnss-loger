@@ -5,7 +5,8 @@ import pkg from './package.json' with { type: 'json' }
 
 // The only third-party data the app ever fetches, each on explicit user action:
 // a sample log pinned to an exact commit, and the public GNSS orbit catalogue (no user data sent).
-const SAMPLE_LOG = 'https://raw.githubusercontent.com/google/gps-measurement-tools/a1667c44a7b46a4ee116f5e3d6c8d464c66fe6c5/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
+const SAMPLE_LOG =
+  'https://raw.githubusercontent.com/google/gps-measurement-tools/a1667c44a7b46a4ee116f5e3d6c8d464c66fe6c5/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
 const ORBITS = 'https://celestrak.org/NORAD/elements/gp.php'
 
 // Content-Security-Policy for the production build. GitHub Pages can't set HTTP headers,

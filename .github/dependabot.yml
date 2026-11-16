@@ -11,12 +11,12 @@ updates:
     open-pull-requests-limit: 5
     groups:
       npm-minor-and-patch:
-        patterns: ["*"]
+        patterns: ['*']
         update-types: [minor, patch]
     ignore:
       # Types should track the Node version the site is built with (24).
-      - dependency-name: "@types/node"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
 
   - package-ecosystem: github-actions
     directory: /
@@ -26,4 +26,4 @@ updates:
       default-days: 7
     groups:
       actions:
-        patterns: ["*"]
+        patterns: ['*']

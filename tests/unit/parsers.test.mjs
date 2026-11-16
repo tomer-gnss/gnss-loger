@@ -3,14 +3,21 @@
 // imports, so no build step is needed. Every input here is synthetic.
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { LogParser, parseLogFile, LIMITS } from '../src/logParser.ts'
-import { CellParser, parseCellFile, parseCellTime, techOf, splitDelimited } from '../src/cellParser.ts'
-import { compareGnssCell } from '../src/cellCompare.ts'
+import { LogParser, parseLogFile, LIMITS } from '../../src/logParser.ts'
+import { CellParser, parseCellFile, parseCellTime, techOf, splitDelimited } from '../../src/cellParser.ts'
+import { compareGnssCell } from '../../src/cellCompare.ts'
 
 const T0 = Date.UTC(2026, 0, 15, 10, 0, 0)
-const cks = (b) => { let x = 0; for (const c of b) x ^= c.charCodeAt(0); return x.toString(16).toUpperCase().padStart(2, '0') }
+const cks = (b) => {
+  let x = 0
+  for (const c of b) x ^= c.charCodeAt(0)
+  return x.toString(16).toUpperCase().padStart(2, '0')
+}
 const nmea = (body) => `$${body}*${cks(body)}`
-const hhmmss = (ms) => { const d = new Date(ms); return [d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()].map((n) => String(n).padStart(2, '0')).join('') + '.00' }
+const hhmmss = (ms) => {
+  const d = new Date(ms)
+  return [d.getUTCHours(), d.getUTCMinutes(), d.getUTCSeconds()].map((n) => String(n).padStart(2, '0')).join('') + '.00'
+}
 
 /** One NMEA second: RMC + GGA + one GPGSV with the given C/N0 values. */
 function nmeaSecond(ms, cn0s) {
@@ -32,7 +39,10 @@ test('NMEA: epochs, C/N0 and fixes', () => {
   assert.equal(log.kind, 'nmea')
   assert.equal(log.epochs.length, 5)
   assert.equal(log.epochs[0].t, T0)
-  assert.deepEqual(log.epochs[0].signals.map((s) => s.cn0), [45, 40, 35, 30])
+  assert.deepEqual(
+    log.epochs[0].signals.map((s) => s.cn0),
+    [45, 40, 35, 30],
+  )
   assert.ok(log.fixes.length >= 5)
   assert.ok(Math.abs(log.fixes[0].lat - 32.0853) < 1e-3)
 })
@@ -50,8 +60,12 @@ test('NMEA: bad checksum and junk are counted, not parsed', () => {
 
 test('GnssLogger Status + Fix, header-driven', () => {
   const p = new LogParser('gnss_log.txt')
-  p.push('# Fix,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis')
-  p.push('# Status,UnixTimeMillis,SignalCount,SignalIndex,ConstellationType,Svid,CarrierFrequencyHz,Cn0DbHz,AzimuthDegrees,ElevationDegrees,UsedInFix,HasAlmanacData,HasEphemerisData,BasebandCn0DbHz')
+  p.push(
+    '# Fix,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis',
+  )
+  p.push(
+    '# Status,UnixTimeMillis,SignalCount,SignalIndex,ConstellationType,Svid,CarrierFrequencyHz,Cn0DbHz,AzimuthDegrees,ElevationDegrees,UsedInFix,HasAlmanacData,HasEphemerisData,BasebandCn0DbHz',
+  )
   p.push(`Fix,GPS,32.0853,34.7818,40,0,4.5,,${T0}`)
   p.push(`Status,${T0},2,0,1,3,1575420000,44.5,32.0,52.0,1,1,1,40.1`)
   p.push(`Status,${T0},2,1,6,8,1575420000,41.2,82.0,34.0,0,1,1,38.0`)
@@ -68,11 +82,13 @@ test('hostile GNSS input: prototype keys, out-of-range values, huge lines', asyn
   const p = new LogParser('evil.txt')
   p.push('# __proto__,constructor,prototype,toString')
   p.push('__proto__,{"polluted":1},x,y')
-  p.push('# Fix,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis')
+  p.push(
+    '# Fix,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis',
+  )
   p.push(`Fix,GPS,999,34.78,40,0,4.5,,${T0}`) // impossible latitude
   p.push(`Fix,GPS,32.08,34.78,40,0,-3,,${T0}`) // negative accuracy
   p.finish()
-  assert.equal(({}).polluted, undefined)
+  assert.equal({}.polluted, undefined)
   // A line longer than the cap is skipped by the file reader, not parsed.
   const long = 'A'.repeat(LIMITS.lineLength + 10)
   const log = await parseLogFile(new File([long + '\n' + nmeaSecond(T0, [40]).join('\n')], 'x.nmea'))
@@ -82,10 +98,52 @@ test('hostile GNSS input: prototype keys, out-of-range values, huge lines', asyn
 
 // ---------- cellular log parser ----------
 
-const TC_HEADER = 'mcc,mnc,lac,cell_id,short_cell_id,rnc,psc,asu,dbm,ta,lat,lon,accuracy,speed,bearing,altitude,measured_at,net_type,neighboring,discovered_at,device,rsrp,rsrq,rssi,rssnr,cqi,rscp,csi_rsrp,csi_rsrq,csi_sinr,ss_rsrp,ss_rsrq,ss_sinr,cdma_dbm,cdma_ecio,evdo_dbm,evdo_ecio,evdo_snr,ec_no,arfcn'
+const TC_HEADER =
+  'mcc,mnc,lac,cell_id,short_cell_id,rnc,psc,asu,dbm,ta,lat,lon,accuracy,speed,bearing,altitude,measured_at,net_type,neighboring,discovered_at,device,rsrp,rsrq,rssi,rssnr,cqi,rscp,csi_rsrp,csi_rsrq,csi_sinr,ss_rsrp,ss_rsrq,ss_sinr,cdma_dbm,cdma_ecio,evdo_dbm,evdo_ecio,evdo_snr,ec_no,arfcn'
 const tcRow = (ms, rsrp, { neighbour = false, cell = '27012345', tech = 'LTE' } = {}) => {
   const iso = `"${new Date(ms).toISOString()}"`
-  return ['425', '01', '1', cell, '1', '', '', '40', rsrp, '', '32.08', '34.78', '5', '0', '0', '40', iso, tech, String(neighbour), iso, '"Pixel"', rsrp, '-10', '-65', '12', '2147483647', '', '', '', '', '', '', '', '', '', '', '', '', '', '1850'].join(',')
+  return [
+    '425',
+    '01',
+    '1',
+    cell,
+    '1',
+    '',
+    '',
+    '40',
+    rsrp,
+    '',
+    '32.08',
+    '34.78',
+    '5',
+    '0',
+    '0',
+    '40',
+    iso,
+    tech,
+    String(neighbour),
+    iso,
+    '"Pixel"',
+    rsrp,
+    '-10',
+    '-65',
+    '12',
+    '2147483647',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '',
+    '1850',
+  ].join(',')
 }
 
 test('time formats', () => {
@@ -95,11 +153,16 @@ test('time formats', () => {
   assert.equal(parseCellTime(String(T0)).ms, T0)
   assert.equal(parseCellTime(String(T0 / 1000)).ms, T0)
   assert.equal(parseCellTime('2026.01.15_12.00.00').local, true)
-  for (const bad of ['', '9999-99-99T99:99:99Z', '2026-13-01T00:00:00Z', '1'.repeat(30), 'abc']) assert.equal(parseCellTime(bad), null, bad)
+  for (const bad of ['', '9999-99-99T99:99:99Z', '2026-13-01T00:00:00Z', '1'.repeat(30), 'abc'])
+    assert.equal(parseCellTime(bad), null, bad)
 })
 
 test('technology names', () => {
-  assert.equal(techOf('LTE'), '4G'); assert.equal(techOf('NR'), '5G'); assert.equal(techOf('HSPA+'), '3G'); assert.equal(techOf('EDGE'), '2G'); assert.equal(techOf('?'), null)
+  assert.equal(techOf('LTE'), '4G')
+  assert.equal(techOf('NR'), '5G')
+  assert.equal(techOf('HSPA+'), '3G')
+  assert.equal(techOf('EDGE'), '2G')
+  assert.equal(techOf('?'), null)
 })
 
 test('quoted CSV fields', () => {
@@ -149,7 +212,7 @@ test('hostile cellular input', async () => {
   const log = await parseCellFile(new File([lines.join('\n')], 'evil.csv'))
   assert.ok(performance.now() - started < 2000, 'no catastrophic backtracking')
   assert.equal(log.samples.length, 1)
-  assert.equal(({}).polluted, undefined)
+  assert.equal({}.polluted, undefined)
   await assert.rejects(parseCellFile(new File(['a,b\n1,2\n'], 'x.csv')), /לא נמצאה שורת כותרת/)
 })
 
@@ -160,13 +223,33 @@ function gnssEpochs(depth) {
   const out = []
   for (let s = 0; s < 1200; s++) {
     const d = s >= 600 && s <= 720 ? depth : 0
-    out.push({ t: T0 + s * 1000, signals: [45, 43, 41, 40, 35, 30].map((c, i) => ({ sys: 'GPS', svid: i + 1, band: 'L1', cn0: c - d + ((s * 7 + i * 3) % 3) - 1, az: 0, el: 45, used: null })) })
+    out.push({
+      t: T0 + s * 1000,
+      signals: [45, 43, 41, 40, 35, 30].map((c, i) => ({
+        sys: 'GPS',
+        svid: i + 1,
+        band: 'L1',
+        cn0: c - d + ((s * 7 + i * 3) % 3) - 1,
+        az: 0,
+        el: 45,
+        used: null,
+      })),
+    })
   }
   return out
 }
 const cells = (drop) => {
   const out = []
-  for (let s = 0; s < 1200; s += 2) out.push({ t: T0 + s * 1000, level: -95 - (s >= 600 && s <= 720 ? drop : 0) + ((s * 5) % 3) - 1, rsrq: null, sinr: null, tech: '4G', cell: '1', arfcn: null })
+  for (let s = 0; s < 1200; s += 2)
+    out.push({
+      t: T0 + s * 1000,
+      level: -95 - (s >= 600 && s <= 720 ? drop : 0) + ((s * 5) % 3) - 1,
+      rsrq: null,
+      sinr: null,
+      tech: '4G',
+      cell: '1',
+      arfcn: null,
+    })
   return out
 }
 

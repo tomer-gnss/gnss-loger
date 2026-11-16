@@ -16,7 +16,9 @@ type SerialPortLike = {
   readable: ReadableStream<Uint8Array> | null
   getInfo?(): SerialPortInfo
 }
-type SerialLike = { requestPort(o?: { filters?: unknown[]; allowedBluetoothServiceClassIds?: string[] }): Promise<SerialPortLike> }
+type SerialLike = {
+  requestPort(o?: { filters?: unknown[]; allowedBluetoothServiceClassIds?: string[] }): Promise<SerialPortLike>
+}
 
 /** Bluetooth Serial Port Profile: what Bluetooth GNSS receivers expose. */
 const SPP_UUID = '00001101-0000-1000-8000-00805f9b34fb'
@@ -40,15 +42,32 @@ export function useSerialReceiver() {
   const [info, setInfo] = useState<string | null>(null)
   /** Receiver time minus phone time (ms), median of recent time sentences. Spoofing shifts it. */
   const [timeOffsetMs, setTimeOffsetMs] = useState<number | null>(null)
-  const io = useRef<{ port: SerialPortLike | null; reader: ReadableStreamDefaultReader<string> | null; stop: boolean; timer: number | null }>({ port: null, reader: null, stop: false, timer: null })
+  const io = useRef<{
+    port: SerialPortLike | null
+    reader: ReadableStreamDefaultReader<string> | null
+    stop: boolean
+    timer: number | null
+  }>({ port: null, reader: null, stop: false, timer: null })
 
   const disconnect = useCallback(async () => {
     const s = io.current
     s.stop = true
-    if (s.timer !== null) { window.clearInterval(s.timer); s.timer = null }
-    try { await s.reader?.cancel() } catch { /* already closed */ }
-    try { await s.port?.close() } catch { /* already closed */ }
-    s.reader = null; s.port = null
+    if (s.timer !== null) {
+      window.clearInterval(s.timer)
+      s.timer = null
+    }
+    try {
+      await s.reader?.cancel()
+    } catch {
+      /* already closed */
+    }
+    try {
+      await s.port?.close()
+    } catch {
+      /* already closed */
+    }
+    s.reader = null
+    s.port = null
     setState((st) => (st === 'unsupported' ? st : 'idle'))
   }, [])
 
@@ -58,32 +77,50 @@ export function useSerialReceiver() {
     let port: SerialPortLike
     try {
       // Must run directly in the tap handler: the browser shows its own device picker.
-      port = await (navigator as Navigator & { serial: SerialLike }).serial.requestPort({ allowedBluetoothServiceClassIds: [SPP_UUID] })
+      port = await (navigator as Navigator & { serial: SerialLike }).serial.requestPort({
+        allowedBluetoothServiceClassIds: [SPP_UUID],
+      })
     } catch (e) {
       // The user closed the picker without choosing: not an error worth shouting about.
       if (e instanceof DOMException && e.name === 'NotFoundError') return
-      setError(e instanceof Error ? e.message : String(e)); setState('error'); return
+      setError(e instanceof Error ? e.message : String(e))
+      setState('error')
+      return
     }
     setState('connecting')
     try {
       await port.open({ baudRate })
     } catch (e) {
-      setError(`פתיחת החיבור נכשלה: ${e instanceof Error ? e.message : String(e)}`); setState('error'); return
+      setError(`פתיחת החיבור נכשלה: ${e instanceof Error ? e.message : String(e)}`)
+      setState('error')
+      return
     }
     const i = port.getInfo?.() ?? {}
-    setInfo(i.bluetoothServiceClassId ? 'Bluetooth' : i.usbVendorId !== undefined ? `USB ${i.usbVendorId.toString(16).padStart(4, '0')}:${(i.usbProductId ?? 0).toString(16).padStart(4, '0')}` : 'סדרתי')
+    setInfo(
+      i.bluetoothServiceClassId
+        ? 'Bluetooth'
+        : i.usbVendorId !== undefined
+          ? `USB ${i.usbVendorId.toString(16).padStart(4, '0')}:${(i.usbProductId ?? 0).toString(16).padStart(4, '0')}`
+          : 'סדרתי',
+    )
     const parser = new LogParser('external-receiver', { live: true })
     const offsets: number[] = []
     const s = io.current
-    s.port = port; s.stop = false
+    s.port = port
+    s.stop = false
     setState('connected')
     s.timer = window.setInterval(() => {
       setData(parser.snapshot())
-      if (offsets.length) { const sorted = offsets.slice().sort((a, b) => a - b); setTimeOffsetMs(sorted[sorted.length >> 1]) }
+      if (offsets.length) {
+        const sorted = offsets.slice().sort((a, b) => a - b)
+        setTimeOffsetMs(sorted[sorted.length >> 1])
+      }
     }, 1000)
 
     try {
-      const reader = port.readable!.pipeThrough(new TextDecoderStream() as unknown as ReadableWritablePair<string, Uint8Array>).getReader()
+      const reader = port
+        .readable!.pipeThrough(new TextDecoderStream() as unknown as ReadableWritablePair<string, Uint8Array>)
+        .getReader()
       s.reader = reader
       let carry = ''
       while (!s.stop) {
@@ -91,30 +128,55 @@ export function useSerialReceiver() {
         if (done) break
         const parts = (carry + value).split(/\r?\n/)
         carry = parts.pop() ?? ''
-        if (carry.length > MAX_LINE) { carry = ''; parser.skipLine() }
+        if (carry.length > MAX_LINE) {
+          carry = ''
+          parser.skipLine()
+        }
         for (const line of parts) {
           parser.push(line)
           // Receiver clock vs phone clock, from RMC/GGA time-of-day.
           const m = /^\$G[A-Z]{1,2}(RMC|GGA),([^,]*)/.exec(line)
           const tod = m ? nmeaTod(m[2]) : null
           if (tod !== null) {
-            const now = Date.now(), phoneTod = now % 86400000
+            const now = Date.now(),
+              phoneTod = now % 86400000
             let d = tod - phoneTod
-            if (d > 43200000) d -= 86400000; else if (d < -43200000) d += 86400000
-            offsets.push(d); if (offsets.length > 20) offsets.shift()
+            if (d > 43200000) d -= 86400000
+            else if (d < -43200000) d += 86400000
+            offsets.push(d)
+            if (offsets.length > 20) offsets.shift()
           }
         }
       }
     } catch (e) {
-      if (!s.stop) { setError(`החיבור נקטע: ${e instanceof Error ? e.message : String(e)}`); setState('error') }
+      if (!s.stop) {
+        setError(`החיבור נקטע: ${e instanceof Error ? e.message : String(e)}`)
+        setState('error')
+      }
     } finally {
-      if (s.timer !== null) { window.clearInterval(s.timer); s.timer = null }
+      if (s.timer !== null) {
+        window.clearInterval(s.timer)
+        s.timer = null
+      }
       setData(parser.snapshot())
-      if (!s.stop) { try { await port.close() } catch { /* ignore */ } s.port = null; setState((st) => (st === 'error' ? st : 'idle')) }
+      if (!s.stop) {
+        try {
+          await port.close()
+        } catch {
+          /* ignore */
+        }
+        s.port = null
+        setState((st) => (st === 'error' ? st : 'idle'))
+      }
     }
   }, [])
 
-  useEffect(() => () => { void disconnect() }, [disconnect])
+  useEffect(
+    () => () => {
+      void disconnect()
+    },
+    [disconnect],
+  )
 
   return { state, error, data, info, timeOffsetMs, connect, disconnect, supported: state !== 'unsupported' }
 }

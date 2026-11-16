@@ -22,3 +22,6 @@ dist-ssr
 *.njsproj
 *.sln
 *.sw?
+
+# Test files generated from tests/fixtures (attack logs, hostile inputs) and test output
+tests/.generated/

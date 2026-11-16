@@ -49,8 +49,14 @@ export function useMotion() {
     const DME = DeviceMotionEvent as DeviceMotionEventIOS
     if (typeof DME.requestPermission === 'function') {
       try {
-        if ((await DME.requestPermission()) !== 'granted') { setState('denied'); return }
-      } catch { setState('denied'); return }
+        if ((await DME.requestPermission()) !== 'granted') {
+          setState('denied')
+          return
+        }
+      } catch {
+        setState('denied')
+        return
+      }
     }
 
     // Per-second accumulator (an object, so the event handler mutates fields rather than rebinding).
@@ -59,7 +65,12 @@ export function useMotion() {
     const flush = () => {
       if (s.bucket < 0 || s.n === 0) return
       const m = s.sum / s.n
-      const sec: MotionSecond = { t: s.bucket * 1000, accStd: Math.sqrt(Math.max(0, s.sumSq / s.n - m * m)), yawDeg: s.yaw, samples: s.n }
+      const sec: MotionSecond = {
+        t: s.bucket * 1000,
+        accStd: Math.sqrt(Math.max(0, s.sumSq / s.n - m * m)),
+        yawDeg: s.yaw,
+        samples: s.n,
+      }
       store.current.push(sec)
       if (store.current.length > KEEP_SECONDS) store.current.splice(0, store.current.length - KEEP_SECONDS)
       setSeconds(store.current.slice())
@@ -70,16 +81,35 @@ export function useMotion() {
       if (!a || a.x === null || a.y === null || a.z === null) return
       const now = Date.now()
       const k = Math.floor(now / 1000)
-      if (k !== s.bucket) { flush(); s.bucket = k; s.n = 0; s.sum = 0; s.sumSq = 0; s.yaw = 0 }
+      if (k !== s.bucket) {
+        flush()
+        s.bucket = k
+        s.n = 0
+        s.sum = 0
+        s.sumSq = 0
+        s.yaw = 0
+      }
 
       // Gravity by low-pass filter; linear acceleration = total − gravity.
-      if (!s.gInit) { s.gx = a.x; s.gy = a.y; s.gz = a.z; s.gInit = true }
-      s.gx = s.gx * 0.9 + a.x * 0.1; s.gy = s.gy * 0.9 + a.y * 0.1; s.gz = s.gz * 0.9 + a.z * 0.1
-      const lin = e.acceleration && e.acceleration.x !== null && e.acceleration.y !== null && e.acceleration.z !== null
-        ? e.acceleration as { x: number; y: number; z: number }
-        : { x: a.x - s.gx, y: a.y - s.gy, z: a.z - s.gz }
+      if (!s.gInit) {
+        s.gx = a.x
+        s.gy = a.y
+        s.gz = a.z
+        s.gInit = true
+      }
+      s.gx = s.gx * 0.9 + a.x * 0.1
+      s.gy = s.gy * 0.9 + a.y * 0.1
+      s.gz = s.gz * 0.9 + a.z * 0.1
+      const lin =
+        e.acceleration && e.acceleration.x !== null && e.acceleration.y !== null && e.acceleration.z !== null
+          ? (e.acceleration as { x: number; y: number; z: number })
+          : { x: a.x - s.gx, y: a.y - s.gy, z: a.z - s.gz }
       const mag = Math.hypot(lin.x, lin.y, lin.z)
-      if (Number.isFinite(mag)) { s.n++; s.sum += mag; s.sumSq += mag * mag }
+      if (Number.isFinite(mag)) {
+        s.n++
+        s.sum += mag
+        s.sumSq += mag * mag
+      }
 
       // Rotation about the vertical: project the gyro vector (device frame) onto gravity.
       const r = e.rotationRate
@@ -91,7 +121,11 @@ export function useMotion() {
         const yawRate = (r.beta * s.gx + r.gamma * s.gy + r.alpha * s.gz) / gNorm
         if (Number.isFinite(yawRate)) s.yaw += yawRate * dt
       }
-      if (watchdog.current !== null) { window.clearTimeout(watchdog.current); watchdog.current = null; setState('active') }
+      if (watchdog.current !== null) {
+        window.clearTimeout(watchdog.current)
+        watchdog.current = null
+        setState('active')
+      }
     }
 
     listener.current = onMotion
@@ -105,12 +139,18 @@ export function useMotion() {
     }, 3000)
   }, [supported])
 
-  const clear = useCallback(() => { store.current = []; setSeconds([]) }, [])
-
-  useEffect(() => () => {
-    if (listener.current) window.removeEventListener('devicemotion', listener.current)
-    if (watchdog.current !== null) window.clearTimeout(watchdog.current)
+  const clear = useCallback(() => {
+    store.current = []
+    setSeconds([])
   }, [])
+
+  useEffect(
+    () => () => {
+      if (listener.current) window.removeEventListener('devicemotion', listener.current)
+      if (watchdog.current !== null) window.clearTimeout(watchdog.current)
+    },
+    [],
+  )
 
   return { state, seconds, start, stop, clear, supported }
 }

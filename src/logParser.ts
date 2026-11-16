@@ -6,7 +6,16 @@
 export type Sys = 'GPS' | 'Galileo' | 'GLONASS' | 'BeiDou' | 'QZSS' | 'SBAS' | 'NavIC' | 'Unknown'
 /** Fixed categorical order — colour slots follow this order, never the data. */
 export const SYS_ORDER: Sys[] = ['GPS', 'Galileo', 'GLONASS', 'BeiDou', 'QZSS', 'SBAS', 'NavIC', 'Unknown']
-export const SYS_PREFIX: Record<Sys, string> = { GPS: 'G', Galileo: 'E', GLONASS: 'R', BeiDou: 'C', QZSS: 'J', SBAS: 'S', NavIC: 'I', Unknown: '?' }
+export const SYS_PREFIX: Record<Sys, string> = {
+  GPS: 'G',
+  Galileo: 'E',
+  GLONASS: 'R',
+  BeiDou: 'C',
+  QZSS: 'J',
+  SBAS: 'S',
+  NavIC: 'I',
+  Unknown: '?',
+}
 
 export type Signal = {
   sys: Sys
@@ -103,7 +112,7 @@ const num = (s: string | undefined) => {
 }
 
 /** Own-property lookup: file-supplied keys like "__proto__" must never reach Object.prototype. */
-const own = <T,>(obj: Record<string, T> | undefined, key: string | number): T | undefined =>
+const own = <T>(obj: Record<string, T> | undefined, key: string | number): T | undefined =>
   obj !== undefined && Object.hasOwn(obj, key) ? obj[key] : undefined
 
 /** Exact integer for int64 nanosecond fields; null if not a plain integer of sane length. */
@@ -112,7 +121,8 @@ const bigint = (s: string | undefined) => {
   return t && /^-?\d{1,20}$/.test(t) ? BigInt(t) : null
 }
 
-const validTime = (t: number | null): t is number => t !== null && Number.isFinite(t) && Math.abs(t) < 8.64e15 && Number.isFinite(new Date(t).getTime())
+const validTime = (t: number | null): t is number =>
+  t !== null && Number.isFinite(t) && Math.abs(t) < 8.64e15 && Number.isFinite(new Date(t).getTime())
 const inRange = (v: number | null, lo: number, hi: number) => (v !== null && v >= lo && v <= hi ? v : null)
 const validLat = (v: number | null) => inRange(v, -90, 90)
 const validLon = (v: number | null) => inRange(v, -180, 180)
@@ -121,7 +131,15 @@ const validAz = (v: number | null) => inRange(v, 0, 360)
 const validEl = (v: number | null) => inRange(v, -90, 90)
 const validCn0 = (v: number | null) => inRange(v, 0, 100)
 
-const ANDROID_SYS: Record<number, Sys> = { 1: 'GPS', 2: 'SBAS', 3: 'GLONASS', 4: 'QZSS', 5: 'BeiDou', 6: 'Galileo', 7: 'NavIC' }
+const ANDROID_SYS: Record<number, Sys> = {
+  1: 'GPS',
+  2: 'SBAS',
+  3: 'GLONASS',
+  4: 'QZSS',
+  5: 'BeiDou',
+  6: 'Galileo',
+  7: 'NavIC',
+}
 
 /** Signal band name from carrier frequency (Android Status/Raw records). */
 export function bandFromFreq(hz: number | null, sys: Sys): string | null {
@@ -144,13 +162,43 @@ const NMEA_SIGNALS: Partial<Record<Sys, Record<string, string>>> = {
   GPS: { '1': 'L1', '2': 'L1P', '3': 'L1M', '4': 'L2P', '5': 'L2C', '6': 'L2C', '7': 'L5', '8': 'L5' },
   GLONASS: { '1': 'G1', '2': 'G1P', '3': 'G2', '4': 'G2P' },
   Galileo: { '1': 'E5a', '2': 'E5b', '3': 'E5', '4': 'E6', '5': 'E6', '6': 'E1', '7': 'E1' },
-  BeiDou: { '1': 'B1I', '2': 'B1Q', '3': 'B1C', '4': 'B1A', '5': 'B2a', '6': 'B2b', '7': 'B2', '8': 'B3I', '9': 'B3Q', 'A': 'B3A', 'B': 'B2I', 'C': 'B2Q' },
+  BeiDou: {
+    '1': 'B1I',
+    '2': 'B1Q',
+    '3': 'B1C',
+    '4': 'B1A',
+    '5': 'B2a',
+    '6': 'B2b',
+    '7': 'B2',
+    '8': 'B3I',
+    '9': 'B3Q',
+    A: 'B3A',
+    B: 'B2I',
+    C: 'B2Q',
+  },
   QZSS: { '1': 'L1', '4': 'L1S', '5': 'L2C', '6': 'L2C', '7': 'L5', '8': 'L5' },
   NavIC: { '1': 'L5', '2': 'S' },
 }
 
-const TALKER_SYS: Record<string, Sys> = { GP: 'GPS', GL: 'GLONASS', GA: 'Galileo', GB: 'BeiDou', BD: 'BeiDou', GQ: 'QZSS', QZ: 'QZSS', GI: 'NavIC', IR: 'NavIC' }
-const NMEA_SYSTEM_ID: Record<string, Sys> = { '1': 'GPS', '2': 'GLONASS', '3': 'Galileo', '4': 'BeiDou', '5': 'QZSS', '6': 'NavIC' }
+const TALKER_SYS: Record<string, Sys> = {
+  GP: 'GPS',
+  GL: 'GLONASS',
+  GA: 'Galileo',
+  GB: 'BeiDou',
+  BD: 'BeiDou',
+  GQ: 'QZSS',
+  QZ: 'QZSS',
+  GI: 'NavIC',
+  IR: 'NavIC',
+}
+const NMEA_SYSTEM_ID: Record<string, Sys> = {
+  '1': 'GPS',
+  '2': 'GLONASS',
+  '3': 'Galileo',
+  '4': 'BeiDou',
+  '5': 'QZSS',
+  '6': 'NavIC',
+}
 
 /** Map an NMEA PRN (talker-specific numbering) to constellation + native svid. */
 function prnToSat(talker: string, prn: number, hint?: Sys): { sys: Sys; svid: number } {
@@ -192,7 +240,9 @@ function nmeaLatLon(v: string, hemi: string, degDigits: number) {
 /** hhmmss.ss → ms since midnight */
 function nmeaTod(v: string) {
   if (v.length < 6 || v.length > 12) return null
-  const h = Number(v.slice(0, 2)), mi = Number(v.slice(2, 4)), s = Number(v.slice(4))
+  const h = Number(v.slice(0, 2)),
+    mi = Number(v.slice(2, 4)),
+    s = Number(v.slice(4))
   if (![h, mi, s].every(Number.isFinite) || h > 23 || mi > 59 || s < 0 || s >= 61) return null
   return ((h * 60 + mi) * 60 + s) * 1000
 }
@@ -202,12 +252,15 @@ const WGS84_E2 = 6.69437999014e-3
 
 /** Azimuth / elevation (degrees) of a satellite ECEF position seen from a receiver lat/lon/alt. */
 function azEl(lat: number, lon: number, alt: number, sx: number, sy: number, sz: number) {
-  const φ = (lat * Math.PI) / 180, λ = (lon * Math.PI) / 180
+  const φ = (lat * Math.PI) / 180,
+    λ = (lon * Math.PI) / 180
   const N = WGS84_A / Math.sqrt(1 - WGS84_E2 * Math.sin(φ) ** 2)
   const rx = (N + alt) * Math.cos(φ) * Math.cos(λ)
   const ry = (N + alt) * Math.cos(φ) * Math.sin(λ)
   const rz = (N * (1 - WGS84_E2) + alt) * Math.sin(φ)
-  const dx = sx - rx, dy = sy - ry, dz = sz - rz
+  const dx = sx - rx,
+    dy = sy - ry,
+    dz = sz - rz
   const e = -Math.sin(λ) * dx + Math.cos(λ) * dy
   const n = -Math.sin(φ) * Math.cos(λ) * dx - Math.sin(φ) * Math.sin(λ) * dy + Math.cos(φ) * dz
   const u = Math.cos(φ) * Math.cos(λ) * dx + Math.cos(φ) * Math.sin(λ) * dy + Math.sin(φ) * dz
@@ -221,8 +274,22 @@ const columns = (names: string[]): Columns => new Map(names.map((c, i) => [c, i 
 
 // Default column orders (GPSTest / GnssLogger v3) used when a file has no header for a record type.
 const DEFAULT_HEADERS = new Map<string, Columns>([
-  ['Fix', columns('Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis'.split(','))],
-  ['Status', columns('UnixTimeMillis,SignalCount,SignalIndex,ConstellationType,Svid,CarrierFrequencyHz,Cn0DbHz,AzimuthDegrees,ElevationDegrees,UsedInFix,HasAlmanacData,HasEphemerisData,BasebandCn0DbHz'.split(','))],
+  [
+    'Fix',
+    columns(
+      'Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis'.split(
+        ',',
+      ),
+    ),
+  ],
+  [
+    'Status',
+    columns(
+      'UnixTimeMillis,SignalCount,SignalIndex,ConstellationType,Svid,CarrierFrequencyHz,Cn0DbHz,AzimuthDegrees,ElevationDegrees,UsedInFix,HasAlmanacData,HasEphemerisData,BasebandCn0DbHz'.split(
+        ',',
+      ),
+    ),
+  ],
 ])
 
 /**
@@ -235,7 +302,11 @@ function parseDevice(body: string): string | null {
   if (i < 0) return null
   const j = body.indexOf('Model:', i + 13)
   if (j < 0) return null
-  const maker = body.slice(i + 13, j).trim().replace(/,$/, '').trim()
+  const maker = body
+    .slice(i + 13, j)
+    .trim()
+    .replace(/,$/, '')
+    .trim()
   let model = body.slice(j + 6).split(',')[0]
   const hw = model.indexOf(' GNSS Hardware')
   if (hw >= 0) model = model.slice(0, hw)
@@ -278,7 +349,11 @@ export class LogParser {
   }
 
   push(rawLine: string) {
-    if (rawLine.length > LIMITS.lineLength) { this.lines++; this.bad++; return }
+    if (rawLine.length > LIMITS.lineLength) {
+      this.lines++
+      this.bad++
+      return
+    }
     const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine
     if (!line.trim()) return
     this.lines++
@@ -288,7 +363,10 @@ export class LogParser {
       return this.nmea(line, null)
     }
     const comma = line.indexOf(',')
-    if (comma < 0) { this.bad++; return }
+    if (comma < 0) {
+      this.bad++
+      return
+    }
     const type = line.slice(0, comma)
     this.kind ??= 'android'
     if (type === 'NMEA') {
@@ -298,7 +376,13 @@ export class LogParser {
     const cols = this.headers.get(type) ?? DEFAULT_HEADERS.get(type)
     if (!cols || (type !== 'Fix' && type !== 'Status' && type !== 'Raw')) return
     const f = line.split(',')
-    const get = (...names: string[]) => { for (const n of names) { const i = cols.get(n); if (i !== undefined) return f[i] } return undefined }
+    const get = (...names: string[]) => {
+      for (const n of names) {
+        const i = cols.get(n)
+        if (i !== undefined) return f[i]
+      }
+      return undefined
+    }
     if (type === 'Fix') this.fix(get)
     else if (type === 'Status') this.statusRec(get)
     else if (type === 'Raw') this.rawRec(get)
@@ -308,7 +392,8 @@ export class LogParser {
     const body = line.slice(1).trimStart()
     if (this.device === null) this.device = parseDevice(body)
     const parts = body.split(',').map((p) => p.trim())
-    if (parts.length > 2 && parts.length < 200 && /^[A-Za-z]{1,32}$/.test(parts[0])) this.headers.set(parts[0], columns(parts.slice(1)))
+    if (parts.length > 2 && parts.length < 200 && /^[A-Za-z]{1,32}$/.test(parts[0]))
+      this.headers.set(parts[0], columns(parts.slice(1)))
   }
 
   private addProvider(raw: string) {
@@ -319,7 +404,10 @@ export class LogParser {
   }
 
   private pushFix(fix: LogFix) {
-    if (this.fixes.length >= LIMITS.fixes) { this.truncated = true; return }
+    if (this.fixes.length >= LIMITS.fixes) {
+      this.truncated = true
+      return
+    }
     this.fixes.push(fix)
   }
 
@@ -327,11 +415,17 @@ export class LogParser {
   private epochList<K>(map: Map<K, Signal[]>, key: K): Signal[] | null {
     let list = map.get(key)
     if (!list) {
-      if (map.size >= LIMITS.epochs) { this.truncated = true; return null }
+      if (map.size >= LIMITS.epochs) {
+        this.truncated = true
+        return null
+      }
       list = []
       map.set(key, list)
     }
-    if (list.length >= LIMITS.signalsPerEpoch) { this.truncated = true; return null }
+    if (list.length >= LIMITS.signalsPerEpoch) {
+      this.truncated = true
+      return null
+    }
     return list
   }
 
@@ -339,20 +433,36 @@ export class LogParser {
     const lat = validLat(num(get('LatitudeDegrees', 'Latitude')))
     const lon = validLon(num(get('LongitudeDegrees', 'Longitude')))
     const t = num(get('UnixTimeMillis', '(UTC)TimeInMs'))
-    if (lat === null || lon === null || !validTime(t)) { this.bad++; return }
+    if (lat === null || lon === null || !validTime(t)) {
+      this.bad++
+      return
+    }
     const provider = this.addProvider(get('Provider') ?? '?')
     const alt = inRange(num(get('AltitudeMeters', 'Altitude')), -1e5, 1e6)
-    this.pushFix({ t, lat, lon, alt, acc: validAcc(num(get('AccuracyMeters', 'Accuracy'))), speed: inRange(num(get('SpeedMps', 'Speed')), 0, 1e4), heading: validAz(num(get('BearingDegrees'))), provider })
+    this.pushFix({
+      t,
+      lat,
+      lon,
+      alt,
+      acc: validAcc(num(get('AccuracyMeters', 'Accuracy'))),
+      speed: inRange(num(get('SpeedMps', 'Speed')), 0, 1e4),
+      heading: validAz(num(get('BearingDegrees'))),
+      provider,
+    })
   }
 
   private statusRec(get: (...n: string[]) => string | undefined) {
     const t = num(get('UnixTimeMillis'))
     const svid = inRange(num(get('Svid')), 0, 1000)
-    if (!validTime(t) || svid === null) { this.bad++; return }
+    if (!validTime(t) || svid === null) {
+      this.bad++
+      return
+    }
     const sys = own(ANDROID_SYS, num(get('ConstellationType')) ?? 0) ?? 'Unknown'
     const usedRaw = (get('UsedInFix') ?? '').trim().toLowerCase()
     const sig: Signal = {
-      sys, svid,
+      sys,
+      svid,
       band: bandFromFreq(num(get('CarrierFrequencyHz')), sys),
       cn0: validCn0(num(get('Cn0DbHz'))) || null,
       az: validAz(num(get('AzimuthDegrees'))),
@@ -365,7 +475,10 @@ export class LogParser {
   private rawRec(get: (...n: string[]) => string | undefined) {
     const svid = inRange(num(get('Svid')), 0, 1000)
     const timeNanos = num(get('TimeNanos'))
-    if (svid === null || timeNanos === null) { this.bad++; return }
+    if (svid === null || timeNanos === null) {
+      this.bad++
+      return
+    }
     let t = num(get('utcTimeMillis'))
     if (t === null) {
       // Older logs: derive UTC from the GNSS clock (GPS epoch 1980-01-06, minus leap seconds).
@@ -375,26 +488,38 @@ export class LogParser {
       const leap = inRange(num(get('LeapSecond')), 0, 60) ?? (gpsMs < 1483228817000 ? 17 : 18) // leap second added 2017-01-01
       t = Math.round(gpsMs - leap * 1000)
     }
-    if (!validTime(t)) { this.bad++; return }
+    if (!validTime(t)) {
+      this.bad++
+      return
+    }
     const sys = own(ANDROID_SYS, num(get('ConstellationType')) ?? 0) ?? 'Unknown'
     const sig: Signal = {
-      sys, svid,
+      sys,
+      svid,
       band: bandFromFreq(num(get('CarrierFrequencyHz')), sys),
       cn0: validCn0(num(get('Cn0DbHz'))),
-      az: null, el: null, used: null,
+      az: null,
+      el: null,
+      used: null,
       agc: inRange(num(get('AgcDb')), -100, 100),
       basebandCn0: validCn0(num(get('BasebandCn0DbHz'))),
     }
     let ep = this.raw.get(timeNanos)
     if (!ep) {
-      if (this.raw.size >= LIMITS.epochs) { this.truncated = true; return }
+      if (this.raw.size >= LIMITS.epochs) {
+        this.truncated = true
+        return
+      }
       ep = { t, signals: [] }
       this.raw.set(timeNanos, ep)
       // Clock fields are per epoch (identical on every measurement line of it): keep the first.
-      const tn = bigint(get('TimeNanos')), fb = bigint(get('FullBiasNanos'))
+      const tn = bigint(get('TimeNanos')),
+        fb = bigint(get('FullBiasNanos'))
       if (tn !== null && fb !== null) {
         this.clock.push({
-          t, timeNanos: tn, fullBiasNanos: fb,
+          t,
+          timeNanos: tn,
+          fullBiasNanos: fb,
           biasNanos: inRange(num(get('BiasNanos')), -1e9, 1e9) ?? 0,
           driftNanosPerSecond: inRange(num(get('DriftNanosPerSecond')), -1e7, 1e7),
           discontinuity: inRange(num(get('HardwareClockDiscontinuityCount')), 0, 1e9),
@@ -403,11 +528,16 @@ export class LogParser {
         })
       }
     }
-    if (ep.signals.length >= LIMITS.signalsPerEpoch) { this.truncated = true; return }
+    if (ep.signals.length >= LIMITS.signalsPerEpoch) {
+      this.truncated = true
+      return
+    }
     ep.signals.push(sig)
     // Newer devices report the satellite's ECEF position; az/el is resolved in finish(),
     // once the receiver fixes (often logged after the Raw records) are known.
-    const sx = num(get('SvPositionEcefXMeters')), sy = num(get('SvPositionEcefYMeters')), sz = num(get('SvPositionEcefZMeters'))
+    const sx = num(get('SvPositionEcefXMeters')),
+      sy = num(get('SvPositionEcefYMeters')),
+      sz = num(get('SvPositionEcefZMeters'))
     const ecefOk = (v: number | null): v is number => v !== null && Math.abs(v) < 1e9 // satellites sit within ~5e7 m
     if (ecefOk(sx) && ecefOk(sy) && ecefOk(sz)) this.rawEcef.push({ sig, t, sx, sy, sz })
   }
@@ -418,8 +548,13 @@ export class LogParser {
     if (!ref.length) return
     for (const r of this.rawEcef) {
       // nearest fix in time (binary search on sorted fixes)
-      let lo = 0, hi = ref.length - 1
-      while (lo < hi) { const mid = (lo + hi) >> 1; if (ref[mid].t < r.t) lo = mid + 1; else hi = mid }
+      let lo = 0,
+        hi = ref.length - 1
+      while (lo < hi) {
+        const mid = (lo + hi) >> 1
+        if (ref[mid].t < r.t) lo = mid + 1
+        else hi = mid
+      }
       const c = lo > 0 && Math.abs(ref[lo - 1].t - r.t) < Math.abs(ref[lo].t - r.t) ? ref[lo - 1] : ref[lo]
       const { az, el } = azEl(c.lat, c.lon, c.alt ?? 0, r.sx, r.sy, r.sz)
       r.sig.az = Number.isFinite(az) ? az : null
@@ -430,11 +565,17 @@ export class LogParser {
   // --- NMEA ---
   private nmea(sentence: string, wrapperMs: number | null) {
     const s = sentence.trim()
-    if (!nmeaChecksumOk(s)) { this.bad++; return }
+    if (!nmeaChecksumOk(s)) {
+      this.bad++
+      return
+    }
     const body = s.slice(1, s.lastIndexOf('*'))
     const f = body.split(',')
     const id = f[0]
-    if (id.length !== 5) { this.bad++; return }
+    if (id.length !== 5) {
+      this.bad++
+      return
+    }
     const talker = id.slice(0, 2)
     const type = id.slice(2)
 
@@ -442,19 +583,37 @@ export class LogParser {
       this.nmeaHasTimeSentences = true
       const tod = nmeaTod(f[1])
       if (type === 'RMC' && f[9] && /^\d{6}$/.test(f[9])) {
-        const d = Number(f[9].slice(0, 2)), mo = Number(f[9].slice(2, 4)), y = 2000 + Number(f[9].slice(4))
+        const d = Number(f[9].slice(0, 2)),
+          mo = Number(f[9].slice(2, 4)),
+          y = 2000 + Number(f[9].slice(4))
         if (d >= 1 && d <= 31 && mo >= 1 && mo <= 12) this.nmeaDate = Date.UTC(y, mo - 1, d)
       }
       const wrapper = validTime(wrapperMs) ? wrapperMs : null
-      const date = this.nmeaDate ?? (wrapper !== null ? Math.floor(wrapper / 86400000) * 86400000 : this.live ? Math.floor(Date.now() / 86400000) * 86400000 : 0)
+      const date =
+        this.nmeaDate ??
+        (wrapper !== null
+          ? Math.floor(wrapper / 86400000) * 86400000
+          : this.live
+            ? Math.floor(Date.now() / 86400000) * 86400000
+            : 0)
       const t = tod !== null ? date + tod : wrapper
       if (validTime(t) && t !== this.nmeaTime) this.flushNmea(t)
       if (type === 'GGA') {
-        const lat = validLat(nmeaLatLon(f[2], f[3], 2)), lon = validLon(nmeaLatLon(f[4], f[5], 3))
+        const lat = validLat(nmeaLatLon(f[2], f[3], 2)),
+          lon = validLon(nmeaLatLon(f[4], f[5], 3))
         const quality = inRange(num(f[6]), 0, 9) ?? 0
-        if (lat !== null && lon !== null && quality > 0) Object.assign(this.nmeaFix, { lat, lon, alt: inRange(num(f[9]), -1e5, 1e6), quality, numSv: inRange(num(f[7]), 0, 99), hdop: inRange(num(f[8]), 0, 99.9) })
+        if (lat !== null && lon !== null && quality > 0)
+          Object.assign(this.nmeaFix, {
+            lat,
+            lon,
+            alt: inRange(num(f[9]), -1e5, 1e6),
+            quality,
+            numSv: inRange(num(f[7]), 0, 99),
+            hdop: inRange(num(f[8]), 0, 99.9),
+          })
       } else if (f[2] === 'A') {
-        const lat = validLat(nmeaLatLon(f[3], f[4], 2)), lon = validLon(nmeaLatLon(f[5], f[6], 3))
+        const lat = validLat(nmeaLatLon(f[3], f[4], 2)),
+          lon = validLon(nmeaLatLon(f[5], f[6], 3))
         const knots = inRange(num(f[7]), 0, 2e4)
         if (lat !== null && lon !== null) {
           this.nmeaFix.lat ??= lat
@@ -478,11 +637,15 @@ export class LogParser {
       for (let i = 0; i + 3 < fields.length; i += 4) {
         const prn = inRange(num(fields[i]), 1, 1000)
         if (prn === null) continue
-        if (this.nmeaSignals.length >= LIMITS.signalsPerEpoch) { this.truncated = true; break }
+        if (this.nmeaSignals.length >= LIMITS.signalsPerEpoch) {
+          this.truncated = true
+          break
+        }
         const { sys, svid } = prnToSat(talker, prn)
         this.nmeaSignals.push({
-          sys, svid,
-          band: sigId ? own(NMEA_SIGNALS[sys], sigId) ?? `sig ${sigId}` : null,
+          sys,
+          svid,
+          band: sigId ? (own(NMEA_SIGNALS[sys], sigId) ?? `sig ${sigId}`) : null,
           el: validEl(num(fields[i + 1])),
           az: validAz(num(fields[i + 2])),
           cn0: validCn0(num(fields[i + 3])),
@@ -491,7 +654,8 @@ export class LogParser {
       }
     } else if (type === 'GSA') {
       this.nmeaSawGsa = true
-      const hint = f.length >= 19 ? own(NMEA_SYSTEM_ID, f[18].trim()) : talker !== 'GN' ? own(TALKER_SYS, talker) : undefined
+      const hint =
+        f.length >= 19 ? own(NMEA_SYSTEM_ID, f[18].trim()) : talker !== 'GN' ? own(TALKER_SYS, talker) : undefined
       for (let i = 3; i <= 14; i++) {
         const prn = num(f[i])
         if (prn === null) continue
@@ -506,11 +670,30 @@ export class LogParser {
     if (t !== null) {
       if (this.nmeaSignals.length) {
         if (this.nmeaEpochs.length >= LIMITS.epochs) this.truncated = true
-        else this.nmeaEpochs.push({ t, signals: this.nmeaSignals.map((s) => ({ ...s, used: this.nmeaSawGsa ? this.nmeaUsed.has(`${s.sys}-${s.svid}`) : null })) })
+        else
+          this.nmeaEpochs.push({
+            t,
+            signals: this.nmeaSignals.map((s) => ({
+              ...s,
+              used: this.nmeaSawGsa ? this.nmeaUsed.has(`${s.sys}-${s.svid}`) : null,
+            })),
+          })
       }
       const fx = this.nmeaFix
       if (fx.lat !== undefined && fx.lon !== undefined) {
-        this.pushFix({ t, lat: fx.lat, lon: fx.lon, alt: fx.alt ?? null, acc: null, speed: fx.speed ?? null, heading: fx.heading ?? null, provider: this.addProvider('NMEA'), quality: fx.quality ?? null, numSv: fx.numSv ?? null, hdop: fx.hdop ?? null })
+        this.pushFix({
+          t,
+          lat: fx.lat,
+          lon: fx.lon,
+          alt: fx.alt ?? null,
+          acc: null,
+          speed: fx.speed ?? null,
+          heading: fx.heading ?? null,
+          provider: this.addProvider('NMEA'),
+          quality: fx.quality ?? null,
+          numSv: fx.numSv ?? null,
+          hdop: fx.hdop ?? null,
+        })
       }
     }
     this.nmeaTime = nextTime
@@ -576,7 +759,10 @@ export class LogTooLargeError extends Error {}
  * regularly so even a huge file can't freeze the page.
  */
 export async function parseLogFile(file: File, onProgress?: (fraction: number) => void): Promise<ParsedLog> {
-  if (file.size > LIMITS.fileBytes) throw new LogTooLargeError(`הקובץ גדול מדי (${Math.round(file.size / 1048576)} MB). המגבלה היא ${LIMITS.fileBytes / 1048576} MB.`)
+  if (file.size > LIMITS.fileBytes)
+    throw new LogTooLargeError(
+      `הקובץ גדול מדי (${Math.round(file.size / 1048576)} MB). המגבלה היא ${LIMITS.fileBytes / 1048576} MB.`,
+    )
   const parser = new LogParser(file.name.slice(0, 200))
   const reader = file.stream().pipeThrough(new TextDecoderStream()).getReader()
   let carry = ''
@@ -597,9 +783,16 @@ export async function parseLogFile(file: File, onProgress?: (fraction: number) =
     const parts = (carry + chunk).split('\n')
     carry = parts.pop() ?? ''
     for (const p of parts) parser.push(p)
-    if (carry.length > LIMITS.lineLength) { parser.skipLine(); carry = ''; skipping = true }
+    if (carry.length > LIMITS.lineLength) {
+      parser.skipLine()
+      carry = ''
+      skipping = true
+    }
     onProgress?.(Math.min(1, read / Math.max(1, file.size)))
-    if (performance.now() - lastYield > 50) { await new Promise((r) => setTimeout(r, 0)); lastYield = performance.now() }
+    if (performance.now() - lastYield > 50) {
+      await new Promise((r) => setTimeout(r, 0))
+      lastYield = performance.now()
+    }
   }
   if (carry && !skipping) parser.push(carry)
   return parser.finish()
@@ -617,11 +810,12 @@ export function satellitesOf(signals: Signal[]) {
       if (s.used) prev.used = true
       continue
     }
-    const used = s.used || prev?.used ? true : s.used ?? prev?.used ?? null
+    const used = s.used || prev?.used ? true : (s.used ?? prev?.used ?? null)
     bySat.set(k, { ...s, az: s.az ?? prev?.az ?? null, el: s.el ?? prev?.el ?? null, used })
   }
   return [...bySat.values()]
 }
 
 /** Display label: an explicit name when known (e.g. predicted GLONASS "R720"), else system prefix + svid. */
-export const satLabel = (s: { sys: Sys; svid: number; name?: string }) => s.name ?? `${SYS_PREFIX[s.sys]}${String(s.svid).padStart(2, '0')}`
+export const satLabel = (s: { sys: Sys; svid: number; name?: string }) =>
+  s.name ?? `${SYS_PREFIX[s.sys]}${String(s.svid).padStart(2, '0')}`

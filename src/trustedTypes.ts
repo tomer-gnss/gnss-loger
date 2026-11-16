@@ -8,7 +8,8 @@
 
 type TT = { createPolicy: (name: string, rules: Record<string, (s: string) => string>) => unknown }
 
-const SCRIPT_VECTOR = /<\s*(script|iframe|object|embed|link|meta|base|form|style|template)\b|\bon[a-z]+\s*=|javascript:|srcdoc|data:\s*text\/html/i
+const SCRIPT_VECTOR =
+  /<\s*(script|iframe|object|embed|link|meta|base|form|style|template)\b|\bon[a-z]+\s*=|javascript:|srcdoc|data:\s*text\/html/i
 
 const tt = (globalThis as { trustedTypes?: TT }).trustedTypes
 if (tt) {
@@ -18,8 +19,12 @@ if (tt) {
         if (SCRIPT_VECTOR.test(s)) throw new TypeError('Blocked by Trusted Types policy')
         return s
       },
-      createScript: () => { throw new TypeError('Blocked by Trusted Types policy') },
-      createScriptURL: () => { throw new TypeError('Blocked by Trusted Types policy') },
+      createScript: () => {
+        throw new TypeError('Blocked by Trusted Types policy')
+      },
+      createScriptURL: () => {
+        throw new TypeError('Blocked by Trusted Types policy')
+      },
     })
   } catch {
     // A default policy already exists (e.g. hot reload in dev) — nothing to do.

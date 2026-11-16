@@ -19,8 +19,16 @@ export function timeTicks(t0: number, tFrom: number, tTo: number, w: number) {
 
 /** Index of the last element with t <= target (binary search); -1 if none. */
 export function lastAtOrBefore(arr: { t: number }[], target: number) {
-  let lo = 0, hi = arr.length - 1, ans = -1
-  while (lo <= hi) { const mid = (lo + hi) >> 1; if (arr[mid].t <= target) { ans = mid; lo = mid + 1 } else hi = mid - 1 }
+  let lo = 0,
+    hi = arr.length - 1,
+    ans = -1
+  while (lo <= hi) {
+    const mid = (lo + hi) >> 1
+    if (arr[mid].t <= target) {
+      ans = mid
+      lo = mid + 1
+    } else hi = mid - 1
+  }
   return ans
 }
 

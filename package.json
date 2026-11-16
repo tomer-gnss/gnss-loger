@@ -1,14 +1,18 @@
 {
   "name": "gnss-loger",
   "private": true,
-  "version": "1.1.0",
+  "version": "1.1.1",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "dev:phone": "vite --host",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
-    "test": "node --test \"tests/**/*.test.mjs\"",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "pretest": "node tests/fixtures/generate.mjs",
+    "test": "node --import ./tests/resolve-ts.mjs --test \"tests/unit/**/*.test.mjs\"",
+    "test:e2e": "node tests/e2e/run.mjs",
     "preview": "vite preview"
   },
   "dependencies": {
@@ -26,6 +30,8 @@
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "oxlint": "^1.89.0",
+    "playwright-core": "1.49.1",
+    "prettier": "3.9.10",
     "typescript": "~7.0.2",
     "vite": "^8.3.5"
   }

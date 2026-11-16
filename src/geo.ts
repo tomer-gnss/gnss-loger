@@ -119,7 +119,10 @@ export function useGeolocation() {
     const v: { hiddenAt: number | null; resumeCheck: number | null } = { hiddenAt: null, resumeCheck: null }
     const onVisibility = () => {
       if (!wanted.current) return
-      if (document.visibilityState === 'hidden') { v.hiddenAt = Date.now(); return }
+      if (document.visibilityState === 'hidden') {
+        v.hiddenAt = Date.now()
+        return
+      }
       const from = v.hiddenAt ?? lastFixAt.current
       v.hiddenAt = null
       if (from && Date.now() - from > 2000) setGaps((g) => [...g.slice(-49), { from, to: Date.now() }])
@@ -169,7 +172,10 @@ export function useWakeLock(enabled: boolean) {
     const acquire = async () => {
       try {
         const sentinel = await navigator.wakeLock.request('screen')
-        if (lock.cancelled) { void sentinel.release(); return }
+        if (lock.cancelled) {
+          void sentinel.release()
+          return
+        }
         lock.sentinel = sentinel
         setHeld(true)
         sentinel.addEventListener('release', () => setHeld(false))
@@ -178,7 +184,9 @@ export function useWakeLock(enabled: boolean) {
       }
     }
     // The OS drops the lock whenever the tab is hidden; take it again when the user comes back.
-    const onVisible = () => { if (document.visibilityState === 'visible' && (lock.sentinel === null || lock.sentinel.released)) void acquire() }
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && (lock.sentinel === null || lock.sentinel.released)) void acquire()
+    }
     void acquire()
     document.addEventListener('visibilitychange', onVisible)
     return () => {
@@ -239,6 +247,17 @@ export function gradeAccuracy(acc: number): AccuracyGrade {
 export function toCsv(fixes: Fix[]) {
   const head = 'time_iso,lat,lon,accuracy_m,altitude_m,altitude_accuracy_m,speed_mps,heading_deg'
   const n = (v: number | null, d = 2) => (v === null ? '' : v.toFixed(d))
-  const rows = fixes.map((f) => [new Date(f.wall).toISOString(), f.lat.toFixed(8), f.lon.toFixed(8), n(f.acc), n(f.alt), n(f.altAcc), n(f.speed), n(f.heading, 1)].join(','))
+  const rows = fixes.map((f) =>
+    [
+      new Date(f.wall).toISOString(),
+      f.lat.toFixed(8),
+      f.lon.toFixed(8),
+      n(f.acc),
+      n(f.alt),
+      n(f.altAcc),
+      n(f.speed),
+      n(f.heading, 1),
+    ].join(','),
+  )
   return [head, ...rows].join('\n')
 }

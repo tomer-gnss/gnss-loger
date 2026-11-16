@@ -1,0 +1,18 @@
+# 
+# Header Description:
+# 
+# Version: v4.1.0 Platform: 14 Manufacturer: Samsung Model: SM-S918B
+# 
+#   Fix,Provider,LatitudeDegrees,LongitudeDegrees,AltitudeMeters,SpeedMps,AccuracyMeters,BearingDegrees,UnixTimeMillis,SpeedAccuracyMps,BearingAccuracyDegrees,elapsedRealtimeNanos,VerticalAccuracyMeters,MockLocation
+#   NMEA,[NMEA sentence],(UTC)TimeInMs
+#   Status,UnixTimeMillis,SignalCount,SignalIndex,ConstellationType,Svid,CarrierFrequencyHz,Cn0DbHz,AzimuthDegrees,ElevationDegrees,UsedInFix,HasAlmanacData,HasEphemerisData,BasebandCn0DbHz
+Status,1730730000000,4,0,1,3,1575420000,44.5,32.0,52.0,1,1,1,40.1
+Status,1730730000000,4,1,1,3,1176450000,39.0,32.0,52.0,1,1,1,35.0
+Status,1730730000000,4,2,6,8,1575420000,41.2,82.0,34.0,0,1,1,38.0
+Status,1730730000000,4,3,3,14,1602000000,0.0,138.0,21.0,0,1,0,0.0
+Fix,GPS,32.0853,34.7818,41.2,0.0,4.2,,1730730000000,0.5,,123,6.0,0
+NMEA,$GPGGA,123000.00,3205.11800,N,03446.90800,E,1,08,0.9,41.2,M,17.5,M,,*67,1730730000000
+Status,1730730001000,2,0,1,3,1575420000,45.0,32.1,52.1,1,1,1,40.0
+Status,1730730001000,2,1,5,19,1561098000,40.0,202.0,45.0,1,1,1,37.0
+Fix,GPS,32.08531,34.78181,41.3,0.0,4.0,,1730730001000,0.5,,124,6.0,0
+Fix,NLP,32.0860,34.7800,,,500.0,,1730730001200,,,125,,0

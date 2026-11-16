@@ -1,0 +1,8 @@
+dist
+node_modules
+package-lock.json
+tests/.generated
+tests/fixtures/*.nmea
+tests/fixtures/*.txt
+public
+*.md

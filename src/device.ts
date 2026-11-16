@@ -26,5 +26,17 @@ export function isIOSSafari() {
 }
 
 const HINT_KEY = 'atlas.installHintDismissed'
-export const installHintDismissed = () => { try { return localStorage.getItem(HINT_KEY) === '1' } catch { return false } }
-export const dismissInstallHint = () => { try { localStorage.setItem(HINT_KEY, '1') } catch { /* storage blocked */ } }
+export const installHintDismissed = () => {
+  try {
+    return localStorage.getItem(HINT_KEY) === '1'
+  } catch {
+    return false
+  }
+}
+export const dismissInstallHint = () => {
+  try {
+    localStorage.setItem(HINT_KEY, '1')
+  } catch {
+    /* storage blocked */
+  }
+}

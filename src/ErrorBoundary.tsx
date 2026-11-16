@@ -28,7 +28,9 @@ export class ErrorBoundary extends Component<Props, State> {
         <div>
           <h2>{this.props.label} נתקל בשגיאה</h2>
           <p>שאר האתר ממשיך לעבוד. אם זה קרה אחרי טעינת קובץ, ייתכן שהקובץ פגום או לא נתמך.</p>
-          <button className="primary-button" onClick={() => this.setState({ failed: false })}><RotateCcw size={18} /> נסה שוב</button>
+          <button className="primary-button" onClick={() => this.setState({ failed: false })}>
+            <RotateCcw size={18} /> נסה שוב
+          </button>
         </div>
       </section>
     )
