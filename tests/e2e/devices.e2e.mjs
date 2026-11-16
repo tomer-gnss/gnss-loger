@@ -163,9 +163,15 @@ for (const [name, engine, dev] of PROFILES) {
   // Footer: version + erase
   const ver = await p.locator('.app-version').innerText()
   ok(`${tag} footer: version shown`, /v\d+\.\d+\.\d+/.test(ver), ver)
-  await p.getByRole('button', { name: /מחיקת נתונים מהמכשיר/ }).click()
-  await p.waitForLoadState('load')
-  await p.waitForTimeout(800)
+  // The click confirms and reloads the page. Don't let the click wait for that navigation
+  // (Linux WebKit never reports it settled); wait for the result instead: the reloaded page shows
+  // the welcome again, because erasing also cleared its "seen" flag.
+  await p.getByRole('button', { name: /מחיקת נתונים מהמכשיר/ }).click({ noWaitAfter: true })
+  await p
+    .getByRole('dialog')
+    .waitFor({ timeout: 20000 })
+    .catch(() => {})
+  await p.waitForTimeout(500)
   const left = await p.evaluate(() =>
     Object.keys(localStorage)
       .filter((k) => k.startsWith('atlas.'))
