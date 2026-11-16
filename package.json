@@ -10,8 +10,7 @@
     "lint": "oxlint",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "pretest": "node tests/fixtures/generate.mjs",
-    "test": "node --import ./tests/resolve-ts.mjs --test \"tests/unit/**/*.test.mjs\"",
+    "test": "node tests/fixtures/generate.mjs && node --import ./tests/resolve-ts.mjs --test \"tests/unit/**/*.test.mjs\"",
     "test:e2e": "node tests/e2e/run.mjs",
     "preview": "vite preview"
   },
