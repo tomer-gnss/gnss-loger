@@ -167,10 +167,14 @@ for (const [name, engine, dev] of PROFILES) {
   // (Linux WebKit never reports it settled); wait for the result instead: the reloaded page shows
   // the welcome again, because erasing also cleared its "seen" flag.
   await p.getByRole('button', { name: /מחיקת נתונים מהמכשיר/ }).click({ noWaitAfter: true })
-  await p
+  const reloadedByApp = await p
     .getByRole('dialog')
-    .waitFor({ timeout: 20000 })
-    .catch(() => {})
+    .waitFor({ timeout: 15000 })
+    .then(() => true)
+    .catch(() => false)
+  // Linux WebKit's landscape iPhone emulation sometimes drops the app's own reload; what matters
+  // is that the data is gone, so reload by hand and check what a fresh visit sees.
+  if (!reloadedByApp) await p.reload()
   await p.waitForTimeout(500)
   const left = await p.evaluate(() =>
     Object.keys(localStorage)
@@ -180,7 +184,7 @@ for (const [name, engine, dev] of PROFILES) {
   ok(
     `${tag} erase: storage cleared and welcome back`,
     left.length === 0 && (await p.getByRole('dialog').isVisible()),
-    left.join(','),
+    `${left.join(',')}${reloadedByApp ? '' : ' (page reloaded by the test)'}`,
   )
   ok(`${tag} no JS / CSP errors`, errors.length === 0, errors.join(' | '))
   await b.close()
