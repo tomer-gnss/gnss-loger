@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type DragEvent, type ReactNode } from 'react'
-import { FileText, FolderOpen, Gauge, Pause, Play, RotateCcw, Satellite, Upload } from 'lucide-react'
+import { FileDown, FileText, FolderOpen, Gauge, Pause, Play, RotateCcw, Satellite, Upload } from 'lucide-react'
 import { parseLogFile, satellitesOf, satLabel, SYS_ORDER, type LogFix, type ParsedLog, type Signal, type Sys } from './logParser'
 import { TimeChart } from './LiveCharts'
 import { MapView } from './MapView'
@@ -12,6 +12,7 @@ import { SkyPlot } from './SkyPlot'
 import { RecordGuide } from './RecordGuide'
 
 import { SAMPLE_URL } from './logLoader'
+import { sha256Hex } from './report'
 const SOURCE_TEXT = {
   Status: 'GnssStatus: אזימוט, גובה, C/N₀ ושימוש בפתרון לכל לוויין',
   NMEA: 'NMEA (GSV/GSA): אזימוט, גובה, C/N₀ ושימוש בפתרון',
@@ -50,7 +51,7 @@ const top4 = (sigs: Signal[]) => {
 
 
 
-export function LogView({ log, setLog }: { log: ParsedLog | null; setLog: (l: ParsedLog | null) => void }) {
+export function LogView({ log, setLog, onReport }: { log: ParsedLog | null; setLog: (l: ParsedLog | null) => void; onReport: () => void }) {
   const [busy, setBusy] = useState<number | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [idx, setIdx] = useState(0)
@@ -64,7 +65,7 @@ export function LogView({ log, setLog }: { log: ParsedLog | null; setLog: (l: Pa
     try {
       const parsed = await parseLogFile(file, (f) => setBusy(f))
       if (!parsed.epochs.length && !parsed.fixes.length) throw new Error('לא נמצאו בקובץ רשומות GNSS מוכרות (Status / Fix / Raw / NMEA).')
-      setLog(parsed); setIdx(0)
+      setLog({ ...parsed, fileBytes: file.size, sha256: await sha256Hex(file).catch(() => null) }); setIdx(0)
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(null) }
@@ -177,7 +178,10 @@ export function LogView({ log, setLog }: { log: ParsedLog | null; setLog: (l: Pa
       <section className="panel log-summary">
         <div className="panel-heading">
           <div><h2 dir="auto">{log.fileName}</h2><p>{[log.device, summary && `${dateStr(summary.t0)} · משך ${fmtDur(summary.t1 - summary.t0)}`].filter(Boolean).join(' · ')}</p></div>
-          <button className="text-button" onClick={() => { setLog(null); setPlaying(false) }}><Upload size={16} /> קובץ אחר</button>
+          <div className="heading-actions">
+            <button className="text-button" onClick={() => { setPlaying(false); onReport() }}><FileDown size={16} /> דוח PDF</button>
+            <button className="text-button" onClick={() => { setLog(null); setPlaying(false) }}><Upload size={16} /> קובץ אחר</button>
+          </div>
         </div>
         <div className="summary-chips">
           <span className="chip"><Num>{epochs.length}</Num> אפוקים</span>

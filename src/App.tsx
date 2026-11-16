@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Activity, AlertTriangle, ChartLine, Check, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Share, Sun, Timer, Trash2, Vibrate, X } from 'lucide-react'
+import { Activity, AlertTriangle, ChartLine, Check, FileDown, Copy, Crosshair, Download, Gauge, Lock, Map as MapIcon, Mountain, Navigation, Pause, Play, Satellite, ScanLine, Share, Sun, Timer, Trash2, Vibrate, X } from 'lucide-react'
 import { gradeAccuracy, isApproximate, stats, toCsv, useGeolocation, useWakeLock, type Fix, type Gap, type GeoStatus } from './geo'
 import { dismissInstallHint, installHintDismissed, isIOS, isIOSSafari, isStandalone } from './device'
 import { Compass, ScatterPlot, TimeChart } from './LiveCharts'
@@ -15,6 +15,7 @@ import { useSerialReceiver } from './serialReceiver'
 import type { ParsedLog } from './logParser'
 import type { CellLog } from './cellParser'
 import { AppInfo, Welcome } from './AppInfo'
+import { ReportView, type ReportInput } from './ReportView'
 import { welcomeSeen } from './localData'
 import './dashboard.css'
 
@@ -144,6 +145,9 @@ function App() {
   // First visit on this device: a short welcome (also reopenable from the footer).
   const [welcome, setWelcome] = useState(() => !welcomeSeen())
   const closeWelcome = useCallback(() => setWelcome(false), [])
+  const [report, setReport] = useState<ReportInput | null>(null)
+  const closeReport = useCallback(() => setReport(null), [])
+  const openLogReport = () => { if (log) setReport({ kind: 'log', log, cell }) }
   const s = useMemo(() => stats(geo.fixes), [geo.fixes])
   const last = s.last
   const grade = last ? gradeAccuracy(last.acc) : null
@@ -198,7 +202,7 @@ function App() {
       </nav>
 
       <main className="dashboard">
-        {tab === 'log' ? <ErrorBoundary label="ניתוח הלוג"><LogView log={log} setLog={setLog} /></ErrorBoundary> : tab === 'plots' ? <ErrorBoundary label="גרפים"><PlotsView rx={rx} log={log} setLog={setLog} cell={cell} setCell={setCell} /></ErrorBoundary> : <>
+        {tab === 'log' ? <ErrorBoundary label="ניתוח הלוג"><LogView log={log} setLog={setLog} onReport={openLogReport} /></ErrorBoundary> : tab === 'plots' ? <ErrorBoundary label="גרפים"><PlotsView rx={rx} log={log} setLog={setLog} cell={cell} setCell={setCell} onReport={openLogReport} /></ErrorBoundary> : <>
         {!last && <InstallHint />}
         {(!last || geo.status === 'denied' || geo.status === 'insecure') && <StatusCard status={geo.status} message={geo.message} onStart={geo.start} />}
         {isApproximate(geo.fixes) && <ApproximateCard />}
@@ -326,12 +330,14 @@ function App() {
         <AppInfo onWelcome={() => setWelcome(true)} />
       </main>
       {welcome && <Welcome onClose={closeWelcome} />}
+      {report && <ErrorBoundary label="הדוח"><ReportView input={report} onClose={closeReport} /></ErrorBoundary>}
 
       {tab === 'live' && <nav className="action-bar" aria-label="פעולות">
         {geo.running
           ? <button className="action primary" onClick={geo.stop}><Pause size={20} /><span>עצור</span></button>
           : <button className="action primary" onClick={geo.start} disabled={geo.status === 'insecure' || geo.status === 'unsupported'}><Play size={20} /><span>הפעל</span></button>}
         {wake.supported && <button className={`action ${keepAwake ? 'on' : ''}`} onClick={() => setKeepAwake(!keepAwake)} aria-pressed={keepAwake}><Sun size={20} /><span>{keepAwake ? 'מסך דולק' : 'מסך רגיל'}</span></button>}
+        <button className="action" onClick={() => setReport({ kind: 'live', fixes: geo.session.current.map((f) => ({ wall: f.wall, lat: f.lat, lon: f.lon, acc: f.acc, alt: f.alt, speed: f.speed })), gaps: geo.gaps, motion: motion.seconds.slice() })} disabled={!geo.session.current.length}><FileDown size={20} /><span>דוח</span></button>
         <button className="action" onClick={exportCsv} disabled={!geo.session.current.length}><Download size={20} /><span>CSV</span></button>
         <button className="action" onClick={() => { geo.clear(); motion.clear() }} disabled={!geo.fixes.length}><Trash2 size={20} /><span>נקה</span></button>
       </nav>}

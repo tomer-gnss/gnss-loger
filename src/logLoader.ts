@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { parseLogFile, type ParsedLog } from './logParser'
+import { sha256Hex } from './report'
 
 /** Public sample (Apache-2.0), pinned to a commit. Also whitelisted in the CSP connect-src. */
 export const SAMPLE_URL = 'https://raw.githubusercontent.com/google/gps-measurement-tools/a1667c44a7b46a4ee116f5e3d6c8d464c66fe6c5/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
@@ -14,7 +15,7 @@ export function useLogLoader(setLog: (l: ParsedLog) => void) {
     try {
       const parsed = await parseLogFile(file, (f) => setBusy(f))
       if (!parsed.epochs.length && !parsed.fixes.length) throw new Error('לא נמצאו בקובץ רשומות GNSS מוכרות (Status / Fix / Raw / NMEA).')
-      setLog(parsed)
+      setLog({ ...parsed, fileBytes: file.size, sha256: await sha256Hex(file).catch(() => null) })
     } catch (e) {
       setError(e instanceof Error ? e.message : String(e))
     } finally { setBusy(null) }

@@ -73,6 +73,9 @@ export type ParsedLog = {
   truncated: boolean
   /** Receiver clock per Raw epoch (empty for NMEA / Status-only logs). */
   clock: ClockSample[]
+  /** Set by the loader, for the report: file size and SHA-256 (null when not computed). */
+  fileBytes?: number
+  sha256?: string | null
 }
 
 // ---------- safety limits ----------

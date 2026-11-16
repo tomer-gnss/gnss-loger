@@ -1,4 +1,5 @@
-import { useEffect, useRef, useState } from 'react'
+import { useContext, useEffect, useRef, useState } from 'react'
+import { ForcedWidth } from './forcedWidth'
 
 /** Width of an element, tracked so SVG text stays at real pixel size instead of scaling with a viewBox. */
 export function useWidth<T extends HTMLElement>() {
@@ -11,5 +12,6 @@ export function useWidth<T extends HTMLElement>() {
     ro.observe(el)
     return () => ro.disconnect()
   }, [])
-  return [ref, width] as const
+  const forced = useContext(ForcedWidth)
+  return [ref, forced ?? width] as const
 }

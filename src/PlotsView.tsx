@@ -7,7 +7,7 @@
 // web pages), so the UI says so instead of faking it.
 
 import { useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
-import { Bluetooth, FileText, FolderOpen, Pause, Play, Plug, RadioTower, Satellite, SkipForward, Unplug, Upload, X } from 'lucide-react'
+import { Bluetooth, FileDown, FileText, FolderOpen, Pause, Play, Plug, RadioTower, Satellite, SkipForward, Unplug, Upload, X } from 'lucide-react'
 import { satLabel, SYS_ORDER, type Epoch, type ParsedLog, type Sys } from './logParser'
 import { SYS_COLOR, TECH_COLOR } from './colors'
 import { useWidth } from './useWidth'
@@ -43,7 +43,7 @@ function top4(e: Epoch | undefined) {
 // The chart
 // ------------------------------------------------------------------
 
-function Cn0TimeChart({ epochs, t0, tFrom, tTo, hidden, focus, onFocus, bands = [] }: {
+export function Cn0TimeChart({ epochs, t0, tFrom, tTo, hidden, focus, onFocus, bands = [] }: {
   epochs: Epoch[]; t0: number; tFrom: number; tTo: number; hidden: Set<Sys>
   focus: string | null; onFocus: (key: string | null) => void; bands?: TimeBand[]
 }) {
@@ -162,9 +162,9 @@ const KIND_TEXT: Record<CellEventKind, { title: string; why: string }> = {
 }
 const dateUtc = (t: number) => new Date(t).toLocaleString('he-IL', { hour12: false, timeZone: 'UTC' })
 
-export function PlotsView({ rx, log, setLog, cell, setCell }: {
+export function PlotsView({ rx, log, setLog, cell, setCell, onReport }: {
   rx: SerialReceiver; log: ParsedLog | null; setLog: (l: ParsedLog | null) => void
-  cell: CellLog | null; setCell: (c: CellLog | null) => void
+  cell: CellLog | null; setCell: (c: CellLog | null) => void; onReport: () => void
 }) {
   const [source, setSource] = useState<'rx' | 'log'>(rx.state === 'connected' ? 'rx' : 'log')
   const [windowS, setWindowS] = useState<number>(60)
@@ -296,6 +296,7 @@ export function PlotsView({ rx, log, setLog, cell, setCell }: {
             {loader.error && <p className="error-text">{loader.error}</p>}
           </div> : <div className="file-row">
             <span><Satellite size={16} /> <bdi>{log.fileName}</bdi>{!logEpochs.length && ' · אין בו רשומות לוויינים (Status / Raw / GSV), ולכן אין C/N₀'}</span>
+            <button className="text-button" onClick={() => { setReplay({ key: timelineKey, t: rp.t, playing: false }); onReport() }}><FileDown size={16} /> דוח PDF</button>
             <button className="text-button" onClick={() => setLog(null)}><Upload size={16} /> קובץ אחר</button>
           </div>}
 
