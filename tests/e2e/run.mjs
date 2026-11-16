@@ -81,8 +81,22 @@ for (const s of SUITES) {
     maxBuffer: 64 * 1024 * 1024,
   })
   const out = (r.stdout ?? '') + (r.stderr ?? '')
-  for (const line of out.split('\n')) if (/^FAIL|passed$|Error/.test(line)) console.log('  ' + line)
+  const lines = out.split('\n')
+  for (const line of lines) if (/^FAIL|passed$|^\S*Error:/.test(line)) console.log('  ' + line)
   const m = /(\d+)\/(\d+) passed/.exec(out)
+  // On GitHub Actions, failures become annotations: visible on the run page (and its API) without opening logs.
+  if (process.env.GITHUB_ACTIONS && r.status !== 0) {
+    const esc = (t) => t.replace(/%/g, '%25').replace(/\r/g, '').replace(/\n/g, '%0A').slice(0, 900)
+    const fails = lines.filter((l) => /^FAIL/.test(l)).slice(0, 4)
+    const crash = m
+      ? ''
+      : lines
+          .filter((l) => l.trim())
+          .slice(-12)
+          .join('\n')
+    for (const f of fails) console.log(`::error title=e2e ${s.name}::${esc(f)}`)
+    if (crash) console.log(`::error title=e2e ${s.name} crashed::${esc(crash)}`)
+  }
   summary.push({
     name: s.name,
     ok: r.status === 0,
