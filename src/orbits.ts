@@ -21,10 +21,14 @@ import type { PredictedSat } from './skyMath'
 export { prnComparable, skyAngle, type PredictedSat } from './skyMath'
 
 export const ORBITS_URL = 'https://celestrak.org/NORAD/elements/gp.php?GROUP=gnss&FORMAT=json'
+/** Backup when CelesTrak is unreachable: Galmon's live broadcast-ephemeris positions (ECEF). */
+export const GALMON_URL = 'https://galmon.eu/svs.json'
 const CACHE_KEY = 'atlas.gnssOrbits'
 const CACHE_MS = 6 * 3600 * 1000
 
-export type OrbitSat = { sys: Sys; svid: number; name: string; satrec: SatRec }
+/** Either SGP4 elements (CelesTrak) or a position snapshot in metres, ECEF (Galmon). */
+export type OrbitSat = { sys: Sys; svid: number; name: string; satrec?: SatRec; ecef?: [number, number, number] }
+export type OrbitSource = 'CelesTrak' | 'Galmon'
 
 /**
  * Constellation + identifier from the CelesTrak object name. PRN-based labels only where the
@@ -72,13 +76,65 @@ function build(data: unknown): OrbitSat[] {
   return out
 }
 
-/** Orbits for all GNSS satellites, from the 6-hour device cache or a fresh download. */
-export async function loadOrbits(): Promise<{ sats: OrbitSat[]; fetchedAt: number; fromCache: boolean }> {
+export type Orbits = { sats: OrbitSat[]; fetchedAt: number; fromCache: boolean; source: OrbitSource }
+
+/**
+ * Orbits for all GNSS satellites: CelesTrak (6-hour device cache, then download). If CelesTrak
+ * fails, Galmon's current positions instead. Those are a snapshot: reload them every few minutes.
+ */
+export async function loadOrbits(): Promise<Orbits> {
+  try {
+    return await loadCelestrak()
+  } catch (celestrakError) {
+    try {
+      return await loadGalmonOrbits()
+    } catch {
+      throw celestrakError
+    }
+  }
+}
+
+const GALMON_SYS: Record<number, Sys> = { 0: 'GPS', 2: 'Galileo', 3: 'BeiDou', 6: 'GLONASS' }
+const GALMON_PREFIX: Record<string, string> = { GPS: 'G', Galileo: 'E', BeiDou: 'C', GLONASS: 'R' }
+
+/** Galmon svs.json → one position per satellite (it lists each signal; they share the position). */
+export function parseGalmon(data: unknown): OrbitSat[] {
+  if (typeof data !== 'object' || data === null || Array.isArray(data)) throw new Error('נתוני Galmon לא תקינים')
+  const bySat = new Map<string, OrbitSat>()
+  for (const v of Object.values(data as Record<string, unknown>)) {
+    if (typeof v !== 'object' || v === null) continue
+    const o = v as { gnssid?: unknown; svid?: unknown; x?: unknown; y?: unknown; z?: unknown; 'last-seen-s'?: unknown }
+    const sys = typeof o.gnssid === 'number' ? GALMON_SYS[o.gnssid] : undefined
+    const svid = typeof o.svid === 'number' ? o.svid : NaN
+    const [x, y, z] = [o.x, o.y, o.z].map((c) => (typeof c === 'number' ? c : NaN))
+    const r = Math.hypot(x, y, z)
+    // A GNSS orbit is 19,000–42,000 km from the Earth's centre; anything else is not a usable fix.
+    if (!sys || !(svid > 0 && svid < 100) || !(r > 2e7 && r < 4.5e7)) continue
+    if (typeof o['last-seen-s'] === 'number' && o['last-seen-s'] > 3600) continue // stale satellite
+    const key = `${sys}${svid}`
+    if (!bySat.has(key))
+      bySat.set(key, { sys, svid, name: `${GALMON_PREFIX[sys]}${String(svid).padStart(2, '0')}`, ecef: [x, y, z] })
+  }
+  const out = [...bySat.values()]
+  if (out.length < 20) throw new Error('נתוני Galmon חסרים')
+  return out
+}
+
+export async function loadGalmonOrbits(): Promise<Orbits> {
+  const res = await fetch(GALMON_URL, { credentials: 'omit', referrerPolicy: 'no-referrer', cache: 'no-store' })
+  if (!res.ok) throw new Error(`Galmon (${res.status})`)
+  const text = await res.text()
+  if (text.length > 5_000_000) throw new Error('נתוני Galmon גדולים מדי')
+  return { sats: parseGalmon(JSON.parse(text)), fetchedAt: Date.now(), fromCache: false, source: 'Galmon' }
+}
+
+async function loadCelestrak(): Promise<Orbits> {
   try {
     const raw = localStorage.getItem(CACHE_KEY)
     if (raw) {
       const { t, data } = JSON.parse(raw) as { t: number; data: unknown }
-      if (Number.isFinite(t) && Date.now() - t < CACHE_MS) return { sats: build(data), fetchedAt: t, fromCache: true }
+      if (Number.isFinite(t) && Date.now() - t < CACHE_MS)
+        return { sats: build(data), fetchedAt: t, fromCache: true, source: 'CelesTrak' }
     }
   } catch {
     /* corrupt or blocked cache: refetch */
@@ -95,7 +151,30 @@ export async function loadOrbits(): Promise<{ sats: OrbitSat[]; fetchedAt: numbe
   } catch {
     /* storage full/blocked */
   }
-  return { sats, fetchedAt: t, fromCache: false }
+  return { sats, fetchedAt: t, fromCache: false, source: 'CelesTrak' }
+}
+
+const WGS84_A = 6378137,
+  WGS84_E2 = 6.69437999014e-3
+
+/** Azimuth/elevation (degrees) of an ECEF point (metres) seen from geodetic lat/lon/alt. */
+export function ecefLookAngles(lat: number, lon: number, altM: number, [x, y, z]: [number, number, number]) {
+  const φ = (lat * Math.PI) / 180,
+    λ = (lon * Math.PI) / 180
+  const N = WGS84_A / Math.sqrt(1 - WGS84_E2 * Math.sin(φ) ** 2)
+  const ox = (N + altM) * Math.cos(φ) * Math.cos(λ)
+  const oy = (N + altM) * Math.cos(φ) * Math.sin(λ)
+  const oz = (N * (1 - WGS84_E2) + altM) * Math.sin(φ)
+  const dx = x - ox,
+    dy = y - oy,
+    dz = z - oz
+  // ECEF → local east / north / up
+  const e = -Math.sin(λ) * dx + Math.cos(λ) * dy
+  const n = -Math.sin(φ) * Math.cos(λ) * dx - Math.sin(φ) * Math.sin(λ) * dy + Math.cos(φ) * dz
+  const u = Math.cos(φ) * Math.cos(λ) * dx + Math.cos(φ) * Math.sin(λ) * dy + Math.sin(φ) * dz
+  const az = ((Math.atan2(e, n) * 180) / Math.PI + 360) % 360
+  const el = (Math.atan2(u, Math.hypot(e, n)) * 180) / Math.PI
+  return { az, el }
 }
 
 /** Azimuth/elevation (degrees) of every satellite as seen from lat/lon/alt at time t. */
@@ -105,6 +184,12 @@ export function lookAngles(sats: OrbitSat[], lat: number, lon: number, altM: num
   const observer = { latitude: degreesToRadians(lat), longitude: degreesToRadians(lon), height: altM / 1000 }
   const out: PredictedSat[] = []
   for (const s of sats) {
+    if (s.ecef) {
+      const { az, el } = ecefLookAngles(lat, lon, altM, s.ecef)
+      if (Number.isFinite(az) && Number.isFinite(el)) out.push({ sys: s.sys, svid: s.svid, name: s.name, az, el })
+      continue
+    }
+    if (!s.satrec) continue
     const pv = propagate(s.satrec, date)
     const p = pv?.position
     if (!p || typeof p === 'boolean') continue

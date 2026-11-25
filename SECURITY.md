@@ -30,7 +30,9 @@ To report a vulnerability, please use GitHub's private vulnerability reporting (
   - הם נקראים רק בדפדפן.
 - **רשת:** האתר פונה לשרתים חיצוניים רק אחרי פעולה מפורשת של המשתמש, ורק לכתובות שמותרות ב-CSP:
   - אריחי OpenStreetMap
-  - מסלולים מ-CelesTrak
+  - מסלולים מ-CelesTrak, ומ-Galmon כגיבוי
+  - מרכז מצב GNSS: קבצים עולמיים מ-Stanford GPS Lab, ‏Galmon ו-NOAA SWPC (בלי מיקום)
+  - נתונים חיצוניים הם קלט עוין: הצורה נבדקת, הגודל מוגבל וכל מספר נבדק בטווח
   - קובץ הדוגמה מ-GitHub
 
 ## שכבות ההגנה

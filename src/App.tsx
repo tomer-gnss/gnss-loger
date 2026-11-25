@@ -12,6 +12,7 @@ import { AppInfo, Welcome } from './AppInfo'
 import { ReportView, type ReportInput } from './ReportView'
 import { welcomeSeen } from './localData'
 import { LiveActionBar, LiveView } from './LiveView'
+import type { StatusContext } from './statusFeeds'
 import './dashboard.css'
 
 /** Keeps "1.0 Hz" / "±4.4 m" in left-to-right order inside RTL Hebrew text. */
@@ -64,8 +65,11 @@ function App() {
   const closeWelcome = useCallback(() => setWelcome(false), [])
   const [report, setReport] = useState<ReportInput | null>(null)
   const closeReport = useCallback(() => setReport(null), [])
+  // Outside context from the status center (live tab and log tab), included in the report.
+  const [liveContext, setLiveContext] = useState<StatusContext | null>(null)
+  const [logContext, setLogContext] = useState<StatusContext | null>(null)
   const openLogReport = () => {
-    if (log) setReport({ kind: 'log', log, cell })
+    if (log) setReport({ kind: 'log', log, cell, context: logContext })
   }
   const s = useMemo(() => stats(geo.fixes), [geo.fixes])
 
@@ -99,14 +103,21 @@ function App() {
       <main className="dashboard">
         {tab === 'log' ? (
           <ErrorBoundary label="ניתוח הלוג">
-            <LogView log={log} setLog={setLog} onReport={openLogReport} />
+            <LogView log={log} setLog={setLog} onReport={openLogReport} onContext={setLogContext} />
           </ErrorBoundary>
         ) : tab === 'plots' ? (
           <ErrorBoundary label="גרפים">
             <PlotsView rx={rx} log={log} setLog={setLog} cell={cell} setCell={setCell} onReport={openLogReport} />
           </ErrorBoundary>
         ) : (
-          <LiveView geo={geo} motion={motion} rx={rx} s={s} onShowLog={() => setTab('log')} />
+          <LiveView
+            geo={geo}
+            motion={motion}
+            rx={rx}
+            s={s}
+            onShowLog={() => setTab('log')}
+            onContext={setLiveContext}
+          />
         )}
         <AppInfo onWelcome={() => setWelcome(true)} />
       </main>
@@ -124,7 +135,7 @@ function App() {
           wake={wake}
           keepAwake={keepAwake}
           setKeepAwake={setKeepAwake}
-          onReport={setReport}
+          onReport={(r) => setReport({ ...r, context: liveContext })}
         />
       )}
     </div>

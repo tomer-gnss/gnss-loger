@@ -6,6 +6,8 @@ import { MapView } from './MapView'
 import { ErrorBoundary } from './ErrorBoundary'
 import { analyzeLog } from './integrity'
 import { IntegrityPanel } from './IntegrityPanel'
+import { StatusCenter } from './StatusCenter'
+import type { StatusContext } from './statusFeeds'
 import { SYS_COLOR } from './colors'
 import { ConstellationChart, Cn0Heatmap } from './SatCharts'
 import { SkyPlot } from './SkyPlot'
@@ -46,10 +48,12 @@ export function LogView({
   log,
   setLog,
   onReport,
+  onContext,
 }: {
   log: ParsedLog | null
   setLog: (l: ParsedLog | null) => void
   onReport: () => void
+  onContext: (ctx: StatusContext | null) => void
 }) {
   const [idx, setIdx] = useState(0)
   const [playing, setPlaying] = useState(false)
@@ -73,6 +77,8 @@ export function LogView({
   const { provider, fixes } = useMemo(() => primaryFixes(log?.fixes ?? []), [log])
   // Logs with fixes only (no satellite records) still get a timeline.
   const timeline: { t: number }[] = useMemo(() => (epochs.length ? epochs : fixes), [epochs, fixes])
+  // Where and when the log was recorded: the status center looks up that day's interference there.
+  const statusPos = useMemo(() => (fixes[0] ? { lat: fixes[0].lat, lon: fixes[0].lon } : null), [fixes])
   const cur = timeline[Math.min(idx, timeline.length - 1)]
   const curT = cur?.t ?? 0
   const epoch = epochs.length ? epochs[Math.min(idx, epochs.length - 1)] : null
@@ -265,6 +271,12 @@ export function LogView({
             markerT={curT}
             fmtTime={clock}
           />
+        </ErrorBoundary>
+      )}
+
+      {statusPos && (
+        <ErrorBoundary label="מרכז המצב" resetKey={log}>
+          <StatusCenter pos={statusPos} day={timeline[0]?.t} mode="log" onContext={onContext} />
         </ErrorBoundary>
       )}
 

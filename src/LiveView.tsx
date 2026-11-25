@@ -46,9 +46,11 @@ import { analyzeLive } from './integrity'
 import { IntegrityPanel } from './IntegrityPanel'
 import type { useMotion } from './motion'
 import { LiveSats } from './LiveSats'
+import { StatusCenter } from './StatusCenter'
+import type { StatusContext } from './statusFeeds'
 import type { SerialReceiver } from './serialReceiver'
 import type { ReportInput } from './ReportView'
-import { timeLocal } from './format'
+import { cardinal, timeLocal } from './format'
 
 type Geo = ReturnType<typeof useGeolocation>
 type Motion = ReturnType<typeof useMotion>
@@ -63,8 +65,6 @@ const Num = ({ children }: { children: ReactNode }) => (
     {children}
   </bdi>
 )
-const cardinals = ['צפון', 'צפון־מזרח', 'מזרח', 'דרום־מזרח', 'דרום', 'דרום־מערב', 'מערב', 'צפון־מערב']
-const cardinal = (deg: number) => cardinals[Math.round(deg / 45) % 8]
 
 /** Ticks ten times a second so "time since last fix" visibly counts up between updates. */
 function FixAge({ last, expected }: { last: Fix; expected: number | null }) {
@@ -246,15 +246,28 @@ export function LiveView({
   rx,
   s,
   onShowLog,
+  onContext,
 }: {
   geo: Geo
   motion: Motion
   rx: SerialReceiver
   s: Stats
   onShowLog: () => void
+  onContext: (ctx: StatusContext | null) => void
 }) {
   const [copied, setCopied] = useState(false)
   const last = s.last
+  // Status center: before tracking it still shows satellite health and space weather.
+  const statusPos = useMemo(
+    () => (last ? { lat: last.lat, lon: last.lon, alt: last.alt } : null),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [last?.lat.toFixed(4), last?.lon.toFixed(4)],
+  )
+  const statusCenter = (
+    <ErrorBoundary label="מרכז המצב">
+      <StatusCenter pos={statusPos} mode="live" onContext={onContext} />
+    </ErrorBoundary>
+  )
   const grade = last ? gradeAccuracy(last.acc) : null
   const livePoints = useMemo(
     () => geo.fixes.map((f) => ({ t: f.wall, lat: f.lat, lon: f.lon, acc: f.acc })),
@@ -306,6 +319,7 @@ export function LiveView({
         <StatusCard status={geo.status} message={geo.message} onStart={geo.start} />
       )}
       {isApproximate(geo.fixes) && <ApproximateCard />}
+      {!last && statusCenter}
 
       {last && grade && (
         <>
@@ -403,6 +417,8 @@ export function LiveView({
               }
             />
           </ErrorBoundary>
+
+          {statusCenter}
 
           <ErrorBoundary label="לוויינים בזמן אמת">
             <LiveSats phonePos={last ? { lat: last.lat, lon: last.lon, alt: last.alt } : null} rx={rx} />

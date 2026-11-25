@@ -8,7 +8,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Bluetooth, Orbit, Unplug } from 'lucide-react'
 import { SYS_ORDER, type Epoch, type Signal, type Sys } from './logParser'
-import type { OrbitSat } from './orbits'
+import type { OrbitSat, OrbitSource } from './orbits'
 import type { PredictedSat } from './skyMath'
 import type { SerialReceiver } from './serialReceiver'
 import { SkyPlot } from './SkyPlot'
@@ -79,6 +79,7 @@ export function LiveSats({
   const [orbits, setOrbits] = useState<{
     sats: OrbitSat[]
     fetchedAt: number
+    source: OrbitSource
     lookAngles: typeof import('./orbits').lookAngles
   } | null>(null)
   const [orbitErr, setOrbitErr] = useState<string | null>(null)
@@ -105,6 +106,21 @@ export function LiveSats({
     const id = window.setInterval(() => setNow(Date.now()), 5000)
     return () => window.clearInterval(id)
   }, [orbits])
+  // Galmon (the backup when CelesTrak is down) gives a position snapshot, not orbits: satellites
+  // drift ~0.6° of sky per minute, so take a fresh snapshot every minute (Galmon's polite rate).
+  const galmonMode = orbits?.source === 'Galmon'
+  useEffect(() => {
+    if (!galmonMode) return
+    const id = window.setInterval(() => {
+      import('./orbits')
+        .then((m) => m.loadGalmonOrbits().then((o) => ({ ...o, lookAngles: m.lookAngles })))
+        .then(setOrbits)
+        .catch(() => {
+          /* keep the last snapshot; try again next minute */
+        })
+    }, 60_000)
+    return () => window.clearInterval(id)
+  }, [galmonMode])
 
   // ---------- B. external receiver ----------
   const rxFix = rx.data.fixes[rx.data.fixes.length - 1] ?? null
@@ -167,8 +183,9 @@ export function LiveSats({
         {!consent ? (
           <div className="map-consent">
             <p>
-              מחושב מהמסלולים הציבוריים של כל לווייני ה-GNSS בעולם. ההורדה מ-<b>CelesTrak</b> כוללת את כל הלוויינים בבת
-              אחת, ו<b>המיקום שלך לא נשלח</b>. החישוב נעשה בטלפון. הנתונים נשמרים בטלפון ל-6 שעות.
+              מחושב מהמסלולים הציבוריים של כל לווייני ה-GNSS בעולם. ההורדה מ-<b>CelesTrak</b> (ואם הוא לא זמין, מ-
+              <b>Galmon</b>) כוללת את כל הלוויינים בבת אחת, ו<b>המיקום שלך לא נשלח</b>. החישוב נעשה בטלפון. הנתונים
+              נשמרים בטלפון ל-6 שעות.
             </p>
             <button
               className="primary-button"
@@ -206,8 +223,9 @@ export function LiveSats({
                 </div>
               </div>
               <p className="muted source-note">
-                חזוי מהמסלולים, לא מדידה של המקלט. מקור: CelesTrak, עודכן ב-{clock(orbits.fetchedAt)}. מוצגים כל
-                הלוויינים מעל האופק. במספרים נספרים רק אלה שמעל {MASK}°.
+                חזוי מהמסלולים, לא מדידה של המקלט. מקור:{' '}
+                {orbits.source === 'Galmon' ? 'Galmon (גיבוי, כי CelesTrak לא זמין), מתעדכן כל דקה' : 'CelesTrak'},
+                עודכן ב-{clock(orbits.fetchedAt)}. מוצגים כל הלוויינים מעל האופק. במספרים נספרים רק אלה שמעל {MASK}°.
               </p>
               {hist.length >= 3 && (
                 <>

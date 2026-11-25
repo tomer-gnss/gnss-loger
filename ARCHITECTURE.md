@@ -24,8 +24,8 @@
 | שכבה | קבצים | תפקיד |
 |---|---|---|
 | **קריאת קבצים** | `logParser.ts`, `cellParser.ts`, `logLoader.ts` | לוגים של GNSS (GnssLogger, GPSTest, NMEA) ושל סלולר → מבני נתונים. פונקציות טהורות, בלי React |
-| **ניתוח** | `integrity/` (תיקייה), `cellCompare.ts`, `gnssMetrics.ts`, `report.ts` | זיהוי שיבוש וזיוף, השוואת GNSS לסלולר, מדדים משותפים וסטטיסטיקות לדוח. טהורים |
-| **מקורות חיים** | `geo.ts`, `motion.ts`, `serialReceiver.ts`, `orbits.ts` | Hooks: מיקום מהדפדפן, חיישני תנועה, מקלט חיצוני, מסלולי לוויינים (SGP4) |
+| **ניתוח** | `integrity/` (תיקייה), `cellCompare.ts`, `gnssMetrics.ts`, `report.ts`, `statusFeeds.ts` | זיהוי שיבוש וזיוף, השוואת GNSS לסלולר, מדדים משותפים וסטטיסטיקות לדוח. טהורים |
+| **מקורות חיים** | `geo.ts`, `motion.ts`, `serialReceiver.ts`, `orbits.ts` (CelesTrak, וגיבוי מ-Galmon) | Hooks: מיקום מהדפדפן, חיישני תנועה, מקלט חיצוני, מסלולי לוויינים (SGP4) |
 | **לשוניות** | `App.tsx`, `LiveView.tsx`, `LogView.tsx`, `PlotsView.tsx` | `App` מחזיק את המצב המשותף. כל לשונית היא קובץ |
 | **רכיבי תצוגה** | `IntegrityPanel`, `LiveSats`, `ReceiverConnect`, `ReportView`, `RecordGuide`, `AppInfo`, `MapView`, `ErrorBoundary` | חלקי ממשק |
 | **גרפים** | `LiveCharts`, `SatCharts`, `SkyPlot`, `CellChart`, ו-`Cn0TimeChart` שבתוך `PlotsView` | SVG שנכתב ביד (מפת החום ב-canvas) |
@@ -42,7 +42,8 @@ flowchart LR
   G[Geolocation API] --> GEO[geo.ts]
   M[חיישני תנועה] --> MO[motion.ts]
   R[מקלט חיצוני] --> SR[serialReceiver] --> LP
-  O[CelesTrak] --> OR[orbits.ts]
+  O[CelesTrak / Galmon] --> OR[orbits.ts]
+  X[Stanford RFI · Galmon · NOAA] --> SF[statusFeeds] --> UI
   LP --> INT[integrity/]
   GEO --> INT
   MO --> INT

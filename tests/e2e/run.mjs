@@ -26,6 +26,7 @@ const SUITES = [
   { name: 'cellular', what: 'cellular logs, GNSS-vs-cellular comparison' },
   { name: 'report', what: 'analysis report: PDF, HTML download, privacy toggle' },
   { name: 'sensors', what: 'motion-sensor cross-check: genuine drive vs. spoofed motion' },
+  { name: 'status', what: 'GNSS status center (interference, satellite health, space weather) + orbit backup' },
   { name: 'receiver', what: 'predicted sky (CelesTrak) + mocked external receiver', network: true },
 ].filter((s) => (only.length ? only.includes(s.name) : !s.network || network))
 

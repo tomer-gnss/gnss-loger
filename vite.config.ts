@@ -8,13 +8,20 @@ import pkg from './package.json' with { type: 'json' }
 const SAMPLE_LOG =
   'https://raw.githubusercontent.com/google/gps-measurement-tools/a1667c44a7b46a4ee116f5e3d6c8d464c66fe6c5/NmeaUtils/example/MTV.Local1.ublox-F9K.20200206-181434.nmea'
 const ORBITS = 'https://celestrak.org/NORAD/elements/gp.php'
+// GNSS status center (opt-in; global files only, nothing about the user is sent):
+// Galmon satellite health (also the orbit backup), Stanford aircraft-interference data, NOAA space weather.
+const STATUS = [
+  'https://galmon.eu/svs.json',
+  'https://waas-nas.stanford.edu/data/',
+  'https://services.swpc.noaa.gov/products/',
+]
 
 // Content-Security-Policy for the production build. GitHub Pages can't set HTTP headers,
 // so it goes in a <meta> tag. Only applied to `vite build`: the dev server injects inline
 // scripts for hot reload that this policy would (correctly) block.
 //  - scripts/styles only from this site: no third-party code can run
 //  - images only from this site and the OpenStreetMap tile server (after the user opts in)
-//  - network only to the pinned sample file and the CelesTrak orbit endpoint (both opt-in)
+//  - network only to the pinned sample file, the orbit sources and the status-center feeds (all opt-in)
 //  - Trusted Types: no raw strings into HTML sinks (see src/trustedTypes.ts)
 //  - the web-app manifest from this site only (home-screen name/icon)
 //  - no plugins, workers, frames, fonts, <base> hijack or form posts
@@ -23,7 +30,7 @@ const CSP = [
   "script-src 'self'",
   "style-src 'self'",
   "img-src 'self' data: https://tile.openstreetmap.org",
-  `connect-src 'self' ${SAMPLE_LOG} ${ORBITS}`,
+  `connect-src 'self' ${SAMPLE_LOG} ${ORBITS} ${STATUS.join(' ')}`,
   "font-src 'none'",
   "manifest-src 'self'",
   "worker-src 'none'",

@@ -19,12 +19,15 @@ import { ConstellationChart, Cn0Heatmap } from './SatCharts'
 import { SkyPlot } from './SkyPlot'
 import { Cn0TimeChart } from './PlotsView'
 import { CellChart } from './CellChart'
+import { StatusReportSection } from './StatusCenter'
+import type { StatusContext } from './statusFeeds'
 import { isAndroid, isIOS } from './device'
 import { dateTimeLocal, dateTimeUtc, duration as fmtDur, timeLocal, timeUtc } from './format'
 
-export type ReportInput =
+export type ReportInput = (
   | { kind: 'log'; log: ParsedLog; cell: CellLog | null }
   | { kind: 'live'; fixes: LivePoint[]; gaps: Gap[]; motion: MotionSecond[] }
+) & { context?: StatusContext | null }
 
 /** A4 with 12 mm margins is 186 mm ≈ 703 CSS px wide; charts get a little less. */
 const PRINT_WIDTH = 690
@@ -774,6 +777,7 @@ export function ReportView({ input, onClose }: { input: ReportInput; onClose: ()
           ) : (
             <LiveReport fixes={input.fixes} gaps={input.gaps} motion={input.motion} withLocation={withLocation} />
           )}
+          {input.context && <StatusReportSection ctx={input.context} withLocation={withLocation} />}
           <footer className="report-foot">
             <p>
               <b>שיטה:</b> הממצאים הם הערכה היוריסטית. "חשד" אומר שהדפוס מתאים להפרעה, לא שהוכחה התקפה. לכל ממצא מופיע

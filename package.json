@@ -1,7 +1,7 @@
 {
   "name": "gnss-loger",
   "private": true,
-  "version": "1.1.1",
+  "version": "1.2.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -15,6 +15,7 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "h3-js": "4.5.0",
     "leaflet": "^1.9.4",
     "lucide-react": "^1.68.0",
     "react": "^19.3.1",

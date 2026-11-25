@@ -37,3 +37,6 @@ export const TECH_COLOR: Record<'2G' | '3G' | '4G' | '5G', string> = {
   '3G': '#c98500',
   '2G': '#898781',
 }
+
+// Sequential red ramp (light → dark) for interference severity (share of aircraft with degraded GNSS).
+export const SEQ_RED = ['#fbe3dc', '#f6c2b3', '#ef9c86', '#e5735c', '#d5503a', '#b9351f', '#8f2412']
